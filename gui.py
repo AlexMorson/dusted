@@ -16,7 +16,7 @@ COORD_PATTERN = r"(\d*) (-?\d*) (-?\d*)"
 
 class LevelView(tk.Canvas):
     def __init__(self, parent, app):
-        super().__init__(parent)
+        super().__init__(parent, height=0)
         self.app = app
 
         # Events
