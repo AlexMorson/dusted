@@ -78,10 +78,9 @@ class Grid(tk.Canvas):
         self.inputs = inputs
         self.inputs.subscribe(lambda: self.redraw(True))
 
-        self.pixel_width = 0 # canvas width
-        self.cell_width = 0 # number of cells
-        self.cell_objects = [[] for _ in range(GRID_ROWS)]
-        self.text_objects = [[] for _ in range(GRID_ROWS)]
+        self.pixel_width = 0 # view width
+        self.cell_width = 0 # number of cells in view
+        self.grid_objects = [[] for _ in range(GRID_ROWS)]
         self.current_col = 0
         self.dirty = False
 
@@ -112,17 +111,16 @@ class Grid(tk.Canvas):
                 for col in range(self.cell_width, new_cell_width):
                     x = GRID_SIZE * col
                     y = GRID_SIZE * row
-                    cell = self.create_rectangle(x, y, x + GRID_SIZE, y + GRID_SIZE, outline="gray")
+                    rect = self.create_rectangle(x, y, x + GRID_SIZE, y + GRID_SIZE, outline="gray")
                     text = self.create_text(x + GRID_SIZE // 2, y + GRID_SIZE // 2)
-                    self.cell_objects[row].append(cell)
-                    self.text_objects[row].append(text)
+                    self.grid_objects[row].append((rect, text))
         else:
             for row in range(GRID_ROWS):
                 for col in reversed(range(new_cell_width, self.cell_width)):
-                    self.delete(self.cell_objects[row][col])
-                    self.delete(self.text_objects[row][col])
-                    del self.cell_objects[row][col]
-                    del self.text_objects[row][col]
+                    rect, text = self.grid_objects[row][col]
+                    self.delete(rect)
+                    self.delete(text)
+                    del self.grid_objects[row][col]
 
         self.pixel_width = new_pixel_width
         self.cell_width = new_cell_width
@@ -156,7 +154,7 @@ class Grid(tk.Canvas):
         self.dirty = False
         for row in range(GRID_ROWS):
             for col in range(self.cell_width):
-                cell = self.cell_objects[row][col]
+                rect, text = self.grid_objects[row][col]
                 if self.current_col + col < self.inputs.length(row):
                     if self.inputs.is_selected(row, self.current_col + col):
                         fg = "white"
@@ -164,11 +162,11 @@ class Grid(tk.Canvas):
                     else:
                         fg = "black"
                         bg = "white"
-                    self.itemconfig(self.text_objects[row][col], state="normal", text=self.inputs.get(row, self.current_col + col), fill=fg)
-                    self.itemconfig(self.cell_objects[row][col], state="normal", fill=bg)
+                    self.itemconfig(rect, state="normal", fill=bg)
+                    self.itemconfig(text, state="normal", text=self.inputs.get(row, self.current_col + col), fill=fg)
                 else:
-                    self.itemconfig(self.text_objects[row][col], state="hidden")
-                    self.itemconfig(self.cell_objects[row][col], state="hidden")
+                    self.itemconfig(rect, state="hidden")
+                    self.itemconfig(text, state="hidden")
         self.update_scrollbar()
 
     def update_scrollbar(self):
