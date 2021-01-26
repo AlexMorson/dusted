@@ -222,7 +222,7 @@ class App(tk.Tk):
 
         self.canvas = canvas
         self.character = 0
-        self.after(100, self.handle_stdout)
+        self.after_idle(self.handle_stdout)
 
     def handle_stdout(self):
         try:

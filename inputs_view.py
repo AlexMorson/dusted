@@ -1,11 +1,20 @@
 import random
-import functools
 
 import tkinter as tk
 
 
 GRID_SIZE = 20
 GRID_ROWS = 7
+
+VALID_INPUTS = [
+    "012",
+    "012",
+    "012",
+    "01",
+    "01",
+    "0123456789ab",
+    "0123456789ab"
+]
 
 
 class Broadcaster:
@@ -26,11 +35,19 @@ class Inputs(Broadcaster):
         self.load(inputs)
 
     def load(self, inputs):
-        self.inputs = inputs
+        self.inputs = [list(row) for row in inputs]
         self._max_length = max(len(row) for row in inputs)
 
         self.s_x1 = self.s_y1 = self.s_x2 = self.s_y2 = 0
         self._update_selection_vars()
+
+    def write(self, char):
+        # FIXME: This will write out of bounds if given the chance.
+        for row in range(self.s_top, self.s_bottom+1):
+            if char in VALID_INPUTS[row]:
+                for col in range(self.s_left, self.s_right+1):
+                    self.inputs[row][col] = char
+        self.broadcast()
 
     def max_length(self):
         return self._max_length
@@ -103,6 +120,8 @@ class Grid(tk.Canvas):
         self.bind("<Shift-KeyPress-Up>"   , lambda e: self.inputs.move_cursor(-1,  0, True))
         self.bind("<Shift-KeyPress-Down>" , lambda e: self.inputs.move_cursor( 1,  0, True))
 
+        self.bind("<KeyPress>", self.on_key)
+
     def resize(self):
         new_pixel_width = self.winfo_width()
         new_cell_width = new_pixel_width // GRID_SIZE + 1
@@ -155,6 +174,10 @@ class Grid(tk.Canvas):
         row = (event.y_root - self.winfo_rooty()) // GRID_SIZE
         if 0 <= row <= GRID_ROWS and 0 <= col:
             self.inputs.set_cursor(row, col + self.current_col, True)
+
+    def on_key(self, event):
+        if event.char:
+            self.inputs.write(event.char)
 
     def redraw(self, force=False):
         self.dirty = True
