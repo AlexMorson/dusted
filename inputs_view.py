@@ -8,8 +8,21 @@ GRID_SIZE = 20
 GRID_ROWS = 7
 
 
-class Inputs:
+class Broadcaster:
+    def __init__(self):
+        self.callbacks = []
+
+    def subscribe(self, callback):
+        self.callbacks.append(callback)
+
+    def broadcast(self):
+        for callback in self.callbacks:
+            callback()
+
+
+class Inputs(Broadcaster):
     def __init__(self, inputs):
+        super().__init__()
         self.load(inputs)
 
     def load(self, inputs):
@@ -17,7 +30,7 @@ class Inputs:
         self._max_length = max(len(row) for row in inputs)
 
         self.s_x1 = self.s_y1 = self.s_x2 = self.s_y2 = -1
-        self.s_left = self.s_top = self.s_right = self.s_bottom = -1
+        self._update_selection_vars()
 
     def max_length(self):
         return self._max_length
@@ -30,9 +43,6 @@ class Inputs:
 
     def is_selected(self, row, col):
         return self.s_left <= col <= self.s_right and self.s_top <= row <= self.s_bottom
-
-    def write_selection(self, value):
-        pass
 
     def set_cursor(self, row, col, keep_selection=False):
         if keep_selection:
@@ -57,6 +67,7 @@ class Inputs:
         self.s_right = max(self.s_x1, self.s_x2)
         self.s_top = min(self.s_y1, self.s_y2)
         self.s_bottom = max(self.s_y1, self.s_y2)
+        self.broadcast()
 
 class GridCell(tk.Frame):
     def __init__(self, parent, row, col):
@@ -92,6 +103,7 @@ class Grid(tk.Frame):
 
         self.scrollbar = scrollbar
         self.inputs = inputs
+        self.inputs.subscribe(lambda: self.redraw(True))
 
         self.pixel_width = 0 # canvas width
         self.cell_width = 0 # number of cells
@@ -142,7 +154,6 @@ class Grid(tk.Frame):
 
     def on_move_cursor(self, row_offset, col_offset, keep_selection=False):
         self.inputs.move_cursor(row_offset, col_offset, keep_selection)
-        self.redraw()
 
     def on_click(self, event):
         self.focus_set()
@@ -150,14 +161,12 @@ class Grid(tk.Frame):
         row = (event.y_root - self.winfo_rooty()) // GRID_SIZE
         if 0 <= row <= GRID_ROWS and 0 <= col:
             self.inputs.set_cursor(row, col + self.current_col)
-            self.redraw(True)
 
     def on_drag(self, event):
         col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
         row = (event.y_root - self.winfo_rooty()) // GRID_SIZE
         if 0 <= row <= GRID_ROWS and 0 <= col:
             self.inputs.set_cursor(row, col + self.current_col, True)
-            self.redraw(True)
 
     def redraw(self, force=False):
         self.dirty = True
