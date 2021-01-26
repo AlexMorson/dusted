@@ -200,12 +200,20 @@ class InputsView(tk.Frame):
     def __init__(self, parent, inputs):
         super().__init__(parent)
 
+        for row, text in enumerate(["X", "Y", "Jump", "Dash", "Fall", "Light", "Heavy"]):
+            label = tk.Label(self, text=text, padx=5)
+            label.grid(row=row, column=0, sticky="e")
+
         scrollbar = tk.Scrollbar(self, orient=tk.HORIZONTAL)
         grid = Grid(self, scrollbar, inputs)
         scrollbar.config(command=grid.scroll)
 
-        grid.pack(fill=tk.X)
-        scrollbar.pack(fill=tk.X)
+        grid.grid(row=0, rowspan=GRID_ROWS, column=1, sticky="ew")
+        scrollbar.grid(row=GRID_ROWS, column=1, sticky="ew")
+
+        for row in range(GRID_ROWS):
+            self.grid_rowconfigure(row, minsize=GRID_SIZE)
+        self.grid_columnconfigure(1, weight=1)
 
 
 class App(tk.Tk):
