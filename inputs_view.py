@@ -72,7 +72,7 @@ class Inputs(Broadcaster):
 
 class Grid(tk.Canvas):
     def __init__(self, parent, scrollbar, inputs):
-        super().__init__(parent, height=GRID_SIZE*GRID_ROWS, borderwidth=0, highlightthickness=0)
+        super().__init__(parent, height=GRID_SIZE*(GRID_ROWS+1), borderwidth=0, highlightthickness=0)
 
         self.scrollbar = scrollbar
         self.inputs = inputs
@@ -81,6 +81,7 @@ class Grid(tk.Canvas):
         self.pixel_width = 0 # view width
         self.cell_width = 0 # number of cells in view
         self.grid_objects = [[] for _ in range(GRID_ROWS)]
+        self.frame_objects = []
         self.current_col = 0
         self.dirty = False
 
@@ -107,20 +108,36 @@ class Grid(tk.Canvas):
         new_cell_width = new_pixel_width // GRID_SIZE + 1
 
         if new_cell_width > self.cell_width:
-            for row in range(GRID_ROWS):
-                for col in range(self.cell_width, new_cell_width):
-                    x = GRID_SIZE * col
+            for col in range(self.cell_width, new_cell_width):
+                x = GRID_SIZE * col
+                for row in range(GRID_ROWS):
+                    # Create cell
                     y = GRID_SIZE * row
                     rect = self.create_rectangle(x, y, x + GRID_SIZE, y + GRID_SIZE, outline="gray")
                     text = self.create_text(x + GRID_SIZE // 2, y + GRID_SIZE // 2)
                     self.grid_objects[row].append((rect, text))
+
+                # Create frame tick
+                if col % 10 == 0:
+                    y = GRID_SIZE * GRID_ROWS
+                    line = self.create_line(x, y, x, y + GRID_SIZE, width=2)
+                    text = self.create_text(x + 5, y + GRID_SIZE // 2, text=str(col), anchor="w")
+                    self.frame_objects.append((line, text))
         else:
-            for row in range(GRID_ROWS):
-                for col in reversed(range(new_cell_width, self.cell_width)):
+            for col in reversed(range(new_cell_width, self.cell_width)):
+                for row in range(GRID_ROWS):
+                    # Delete off-screen cell
                     rect, text = self.grid_objects[row][col]
                     self.delete(rect)
                     self.delete(text)
                     del self.grid_objects[row][col]
+
+                # Delete off-screen frame tick
+                if col % 10 == 0:
+                    line, text = self.frame_objects[col // 10]
+                    self.delete(line)
+                    self.delete(text)
+                    del self.frame_objects[col // 10]
 
         self.pixel_width = new_pixel_width
         self.cell_width = new_cell_width
@@ -149,8 +166,11 @@ class Grid(tk.Canvas):
     def _redraw(self):
         if not self.dirty: return
         self.dirty = False
-        for row in range(GRID_ROWS):
-            for col in range(self.cell_width):
+
+        frame_ticks = 0
+        for col in range(self.cell_width):
+            for row in range(GRID_ROWS):
+                # Draw cell
                 rect, text = self.grid_objects[row][col]
                 if self.current_col + col < self.inputs.length(row):
                     if self.inputs.is_selected(row, self.current_col + col):
@@ -164,6 +184,24 @@ class Grid(tk.Canvas):
                 else:
                     self.itemconfig(rect, state="hidden")
                     self.itemconfig(text, state="hidden")
+
+            # Draw next frame tick
+            if (self.current_col + col) % 10 == 0:
+                x = GRID_SIZE * col
+                y = GRID_SIZE * GRID_ROWS
+                line, text = self.frame_objects[frame_ticks]
+                self.coords(line, x, 0, x, y + GRID_SIZE)
+                self.coords(text, x + 5, y + GRID_SIZE // 2)
+                self.itemconfig(text, text=str(self.current_col + col))
+                self.tag_raise(line)
+                frame_ticks += 1
+
+        # Hide unused frame ticks
+        for frame_tick in range(frame_ticks, len(self.frame_objects)):
+            line, text = self.frame_objects[frame_ticks]
+            self.coords(line, -1, -1, -1, -1)
+            self.itemconfig(text, text="")
+
         self.update_scrollbar()
 
     def update_scrollbar(self):
@@ -195,7 +233,7 @@ class InputsView(tk.Frame):
     def __init__(self, parent, inputs):
         super().__init__(parent)
 
-        for row, text in enumerate(["X", "Y", "Jump", "Dash", "Fall", "Light", "Heavy"]):
+        for row, text in enumerate(["X", "Y", "Jump", "Dash", "Fall", "Light", "Heavy", "Frame"]):
             label = tk.Label(self, text=text, padx=5)
             label.grid(row=row, column=0, sticky="e")
 
@@ -203,11 +241,9 @@ class InputsView(tk.Frame):
         grid = Grid(self, scrollbar, inputs)
         scrollbar.config(command=grid.scroll)
 
-        grid.grid(row=0, rowspan=GRID_ROWS, column=1, sticky="ew")
-        scrollbar.grid(row=GRID_ROWS, column=1, sticky="ew")
+        grid.grid(row=0, rowspan=GRID_ROWS+1, column=1, sticky="ew")
+        scrollbar.grid(row=GRID_ROWS+1, column=1, sticky="ew")
 
-        for row in range(GRID_ROWS):
-            self.grid_rowconfigure(row, minsize=GRID_SIZE)
         self.grid_columnconfigure(1, weight=1)
 
 
