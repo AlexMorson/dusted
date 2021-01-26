@@ -29,6 +29,54 @@ class Broadcaster:
             callback()
 
 
+class Cursor(Broadcaster):
+    def __init__(self, inputs):
+        super().__init__()
+        self.inputs = inputs
+
+        self.start_row = self.start_col = 0
+        self.current_row = self.current_col = 0
+
+        self.selection_top = self.selection_bottom = 0
+        self.selection_left = self.selection_right = 0
+
+    def write(self, char):
+        self.inputs.set_block(
+            self.selection_top, self.selection_left,
+            self.selection_bottom, self.selection_right,
+            char
+        )
+
+    def is_selected(self, row, col):
+        return (
+            self.selection_top <= row <= self.selection_bottom and
+            self.selection_left <= col <= self.selection_right
+        )
+
+    def set(self, row, col, keep_selection=False):
+        self.current_row = row
+        self.current_col = col
+        if not keep_selection:
+            self.start_row = self.current_row
+            self.start_col = self.current_col
+        self._update_selection_vars()
+
+    def move(self, row_offset, col_offset, keep_selection=False):
+        self.current_row += row_offset
+        self.current_col += col_offset
+        if not keep_selection:
+            self.start_row = self.current_row
+            self.start_col = self.current_col
+        self._update_selection_vars()
+
+    def _update_selection_vars(self):
+        self.selection_top    = min(self.start_row, self.current_row)
+        self.selection_bottom = max(self.start_row, self.current_row)
+        self.selection_left   = min(self.start_col, self.current_col)
+        self.selection_right  = max(self.start_col, self.current_col)
+        self.broadcast()
+
+
 class Inputs(Broadcaster):
     def __init__(self, inputs):
         super().__init__()
@@ -37,15 +85,12 @@ class Inputs(Broadcaster):
     def load(self, inputs):
         self.inputs = [list(row) for row in inputs]
         self._max_length = max(len(row) for row in inputs)
+        self.broadcast()
 
-        self.s_x1 = self.s_y1 = self.s_x2 = self.s_y2 = 0
-        self._update_selection_vars()
-
-    def write(self, char):
-        # FIXME: This will write out of bounds if given the chance.
-        for row in range(self.s_top, self.s_bottom+1):
+    def set_block(self, top, left, bottom, right, char):
+        for row in range(max(0, top), min(GRID_ROWS, bottom+1)):
             if char in VALID_INPUTS[row]:
-                for col in range(self.s_left, self.s_right+1):
+                for col in range(max(0, left), min(self.length(row), right+1)):
                     self.inputs[row][col] = char
         self.broadcast()
 
@@ -58,34 +103,6 @@ class Inputs(Broadcaster):
     def get(self, row, col):
         return self.inputs[row][col]
 
-    def is_selected(self, row, col):
-        return self.s_left <= col <= self.s_right and self.s_top <= row <= self.s_bottom
-
-    def set_cursor(self, row, col, keep_selection=False):
-        if keep_selection:
-            self.s_x2 = col
-            self.s_y2 = row
-        else:
-            self.s_x1 = self.s_x2 = col
-            self.s_y1 = self.s_y2 = row
-        self._update_selection_vars()
-
-    def move_cursor(self, row_offset, col_offset, keep_selection=False):
-        if keep_selection:
-            self.s_x2 += col_offset
-            self.s_y2 += row_offset
-        else:
-            self.s_x1 = self.s_x2 = self.s_x2 + col_offset
-            self.s_y1 = self.s_y2 = self.s_y2 + row_offset
-        self._update_selection_vars()
-
-    def _update_selection_vars(self):
-        self.s_left = min(self.s_x1, self.s_x2)
-        self.s_right = max(self.s_x1, self.s_x2)
-        self.s_top = min(self.s_y1, self.s_y2)
-        self.s_bottom = max(self.s_y1, self.s_y2)
-        self.broadcast()
-
 
 class Grid(tk.Canvas):
     def __init__(self, parent, scrollbar, inputs):
@@ -93,7 +110,7 @@ class Grid(tk.Canvas):
 
         self.scrollbar = scrollbar
         self.inputs = inputs
-        self.inputs.subscribe(lambda: self.redraw(True))
+        self.cursor = Cursor(inputs)
 
         self.pixel_width = 0 # view width
         self.cell_width = 0 # number of cells in view
@@ -101,6 +118,9 @@ class Grid(tk.Canvas):
         self.frame_objects = []
         self.current_col = 0
         self.dirty = False
+
+        self.inputs.subscribe(self.redraw)
+        self.cursor.subscribe(lambda: self.redraw(True))
 
         self.bind("<Configure>", lambda e: self.resize())
 
@@ -110,15 +130,15 @@ class Grid(tk.Canvas):
         self.bind("<Button-4>", lambda e: self.scroll(tk.SCROLL, -1, tk.UNITS))
         self.bind("<Button-5>", lambda e: self.scroll(tk.SCROLL,  1, tk.UNITS))
 
-        self.bind("<KeyPress-Left>" , lambda e: self.inputs.move_cursor( 0, -1))
-        self.bind("<KeyPress-Right>", lambda e: self.inputs.move_cursor( 0,  1))
-        self.bind("<KeyPress-Up>"   , lambda e: self.inputs.move_cursor(-1,  0))
-        self.bind("<KeyPress-Down>" , lambda e: self.inputs.move_cursor( 1,  0))
+        self.bind("<KeyPress-Left>" , lambda e: self.cursor.move( 0, -1))
+        self.bind("<KeyPress-Right>", lambda e: self.cursor.move( 0,  1))
+        self.bind("<KeyPress-Up>"   , lambda e: self.cursor.move(-1,  0))
+        self.bind("<KeyPress-Down>" , lambda e: self.cursor.move( 1,  0))
 
-        self.bind("<Shift-KeyPress-Left>" , lambda e: self.inputs.move_cursor( 0, -1, True))
-        self.bind("<Shift-KeyPress-Right>", lambda e: self.inputs.move_cursor( 0,  1, True))
-        self.bind("<Shift-KeyPress-Up>"   , lambda e: self.inputs.move_cursor(-1,  0, True))
-        self.bind("<Shift-KeyPress-Down>" , lambda e: self.inputs.move_cursor( 1,  0, True))
+        self.bind("<Shift-KeyPress-Left>" , lambda e: self.cursor.move( 0, -1, True))
+        self.bind("<Shift-KeyPress-Right>", lambda e: self.cursor.move( 0,  1, True))
+        self.bind("<Shift-KeyPress-Up>"   , lambda e: self.cursor.move(-1,  0, True))
+        self.bind("<Shift-KeyPress-Down>" , lambda e: self.cursor.move( 1,  0, True))
 
         self.bind("<KeyPress>", self.on_key)
 
@@ -167,17 +187,17 @@ class Grid(tk.Canvas):
         col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
         row = (event.y_root - self.winfo_rooty()) // GRID_SIZE
         if 0 <= row <= GRID_ROWS and 0 <= col:
-            self.inputs.set_cursor(row, col + self.current_col, keep_selection)
+            self.cursor.set(row, col + self.current_col, keep_selection)
 
     def on_drag(self, event):
         col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
         row = (event.y_root - self.winfo_rooty()) // GRID_SIZE
         if 0 <= row <= GRID_ROWS and 0 <= col:
-            self.inputs.set_cursor(row, col + self.current_col, True)
+            self.cursor.set(row, col + self.current_col, True)
 
     def on_key(self, event):
         if event.char:
-            self.inputs.write(event.char)
+            self.cursor.write(event.char)
 
     def redraw(self, force=False):
         self.dirty = True
@@ -196,7 +216,7 @@ class Grid(tk.Canvas):
                 # Draw cell
                 rect, text = self.grid_objects[row][col]
                 if self.current_col + col < self.inputs.length(row):
-                    if self.inputs.is_selected(row, self.current_col + col):
+                    if self.cursor.is_selected(row, self.current_col + col):
                         fg = "white"
                         bg = "#24b"
                     else:
