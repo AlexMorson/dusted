@@ -110,8 +110,10 @@ class Grid(tk.Canvas):
         if new_cell_width > self.cell_width:
             for row in range(GRID_ROWS):
                 for col in range(self.cell_width, new_cell_width):
-                    cell = self.create_rectangle(GRID_SIZE * col, GRID_SIZE * row, GRID_SIZE * (col + 1), GRID_SIZE * (row + 1))
-                    text = self.create_text(GRID_SIZE * col + GRID_SIZE // 2, GRID_SIZE * row + GRID_SIZE // 2)
+                    x = GRID_SIZE * col
+                    y = GRID_SIZE * row
+                    cell = self.create_rectangle(x, y, x + GRID_SIZE, y + GRID_SIZE, outline="gray")
+                    text = self.create_text(x + GRID_SIZE // 2, y + GRID_SIZE // 2)
                     self.cell_objects[row].append(cell)
                     self.text_objects[row].append(text)
         else:
