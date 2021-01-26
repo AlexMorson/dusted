@@ -29,7 +29,7 @@ class Inputs(Broadcaster):
         self.inputs = inputs
         self._max_length = max(len(row) for row in inputs)
 
-        self.s_x1 = self.s_y1 = self.s_x2 = self.s_y2 = -1
+        self.s_x1 = self.s_y1 = self.s_x2 = self.s_y2 = 0
         self._update_selection_vars()
 
     def max_length(self):
@@ -92,15 +92,15 @@ class Grid(tk.Canvas):
         self.bind("<Button-4>", lambda e: self.scroll(tk.SCROLL, -1, tk.UNITS))
         self.bind("<Button-5>", lambda e: self.scroll(tk.SCROLL,  1, tk.UNITS))
 
-        self.bind("<KeyPress-Left>" , lambda e: self.on_move_cursor( 0, -1))
-        self.bind("<KeyPress-Right>", lambda e: self.on_move_cursor( 0,  1))
-        self.bind("<KeyPress-Up>"   , lambda e: self.on_move_cursor(-1,  0))
-        self.bind("<KeyPress-Down>" , lambda e: self.on_move_cursor( 1,  0))
+        self.bind("<KeyPress-Left>" , lambda e: self.inputs.move_cursor( 0, -1))
+        self.bind("<KeyPress-Right>", lambda e: self.inputs.move_cursor( 0,  1))
+        self.bind("<KeyPress-Up>"   , lambda e: self.inputs.move_cursor(-1,  0))
+        self.bind("<KeyPress-Down>" , lambda e: self.inputs.move_cursor( 1,  0))
 
-        self.bind("<Shift-KeyPress-Left>" , lambda e: self.on_move_cursor( 0, -1, True))
-        self.bind("<Shift-KeyPress-Right>", lambda e: self.on_move_cursor( 0,  1, True))
-        self.bind("<Shift-KeyPress-Up>"   , lambda e: self.on_move_cursor(-1,  0, True))
-        self.bind("<Shift-KeyPress-Down>" , lambda e: self.on_move_cursor( 1,  0, True))
+        self.bind("<Shift-KeyPress-Left>" , lambda e: self.inputs.move_cursor( 0, -1, True))
+        self.bind("<Shift-KeyPress-Right>", lambda e: self.inputs.move_cursor( 0,  1, True))
+        self.bind("<Shift-KeyPress-Up>"   , lambda e: self.inputs.move_cursor(-1,  0, True))
+        self.bind("<Shift-KeyPress-Down>" , lambda e: self.inputs.move_cursor( 1,  0, True))
 
     def resize(self):
         new_pixel_width = self.winfo_width()
@@ -125,9 +125,6 @@ class Grid(tk.Canvas):
         self.pixel_width = new_pixel_width
         self.cell_width = new_cell_width
         self.redraw()
-
-    def on_move_cursor(self, row_offset, col_offset, keep_selection=False):
-        self.inputs.move_cursor(row_offset, col_offset, keep_selection)
 
     def on_click(self, event, keep_selection=False):
         self.focus_set()
