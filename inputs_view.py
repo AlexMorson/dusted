@@ -69,37 +69,10 @@ class Inputs(Broadcaster):
         self.s_bottom = max(self.s_y1, self.s_y2)
         self.broadcast()
 
-class GridCell(tk.Frame):
-    def __init__(self, parent, row, col):
-        super().__init__(parent, width=GRID_SIZE, height=GRID_SIZE)
 
-        self.x = GRID_SIZE * col
-        self.y = GRID_SIZE * row
-
-        self.pack_propagate(0)
-        self.label = tk.Label(self, text="a", borderwidth=1, relief="raised")
-        self.label.pack(fill=tk.BOTH, expand=True)
-
-    def bind(self, event, callback):
-        self.label.bind(event, callback)
-
-    def highlight(self, do=True):
-        if do: self.label.config(fg="white", bg="#24b")
-        else: self.label.config(fg="black", bg="#d9d9d9")
-
-    def set_text(self, text):
-        self.label.config(text=text)
-
-    def place(self):
-        super().place(x=self.x, y=self.y)
-
-    def hide(self):
-        self.place_forget()
-
-
-class Grid(tk.Frame):
+class Grid(tk.Canvas):
     def __init__(self, parent, scrollbar, inputs):
-        super().__init__(parent, height=GRID_SIZE*GRID_ROWS)
+        super().__init__(parent, height=GRID_SIZE*GRID_ROWS, borderwidth=0, highlightthickness=0)
 
         self.scrollbar = scrollbar
         self.inputs = inputs
@@ -107,21 +80,28 @@ class Grid(tk.Frame):
 
         self.pixel_width = 0 # canvas width
         self.cell_width = 0 # number of cells
-        self.cells = [[] for _ in range(GRID_ROWS)]
+        self.cell_objects = [[] for _ in range(GRID_ROWS)]
+        self.text_objects = [[] for _ in range(GRID_ROWS)]
         self.current_col = 0
         self.dirty = False
 
         self.bind("<Configure>", lambda e: self.resize())
 
-        self.bind("<KeyPress-Left>", lambda e: self.on_move_cursor(0, -1))
-        self.bind("<KeyPress-Right>", lambda e: self.on_move_cursor(0, 1))
-        self.bind("<KeyPress-Up>", lambda e: self.on_move_cursor(-1, 0))
-        self.bind("<KeyPress-Down>", lambda e: self.on_move_cursor(1, 0))
+        self.bind("<Button-1>", self.on_click)
+        self.bind("<Shift-Button-1>", lambda e: self.on_click(e, True))
+        self.bind("<B1-Motion>", self.on_drag)
+        self.bind("<Button-4>", lambda e: self.scroll(tk.SCROLL, -1, tk.UNITS))
+        self.bind("<Button-5>", lambda e: self.scroll(tk.SCROLL,  1, tk.UNITS))
 
-        self.bind("<Shift-KeyPress-Left>", lambda e: self.on_move_cursor(0, -1, True))
-        self.bind("<Shift-KeyPress-Right>", lambda e: self.on_move_cursor(0, 1, True))
-        self.bind("<Shift-KeyPress-Up>", lambda e: self.on_move_cursor(-1, 0, True))
-        self.bind("<Shift-KeyPress-Down>", lambda e: self.on_move_cursor(1, 0, True))
+        self.bind("<KeyPress-Left>" , lambda e: self.on_move_cursor( 0, -1))
+        self.bind("<KeyPress-Right>", lambda e: self.on_move_cursor( 0,  1))
+        self.bind("<KeyPress-Up>"   , lambda e: self.on_move_cursor(-1,  0))
+        self.bind("<KeyPress-Down>" , lambda e: self.on_move_cursor( 1,  0))
+
+        self.bind("<Shift-KeyPress-Left>" , lambda e: self.on_move_cursor( 0, -1, True))
+        self.bind("<Shift-KeyPress-Right>", lambda e: self.on_move_cursor( 0,  1, True))
+        self.bind("<Shift-KeyPress-Up>"   , lambda e: self.on_move_cursor(-1,  0, True))
+        self.bind("<Shift-KeyPress-Down>" , lambda e: self.on_move_cursor( 1,  0, True))
 
     def resize(self):
         new_pixel_width = self.winfo_width()
@@ -130,37 +110,31 @@ class Grid(tk.Frame):
         if new_cell_width > self.cell_width:
             for row in range(GRID_ROWS):
                 for col in range(self.cell_width, new_cell_width):
-                    cell = self.create_cell(row, col)
-                    cell.place()
-                    self.cells[row].append(cell)
+                    cell = self.create_rectangle(GRID_SIZE * col, GRID_SIZE * row, GRID_SIZE * (col + 1), GRID_SIZE * (row + 1))
+                    text = self.create_text(GRID_SIZE * col + GRID_SIZE // 2, GRID_SIZE * row + GRID_SIZE // 2)
+                    self.cell_objects[row].append(cell)
+                    self.text_objects[row].append(text)
         else:
             for row in range(GRID_ROWS):
                 for col in reversed(range(new_cell_width, self.cell_width)):
-                    self.cells[row][col].destroy()
-                    del self.cells[row][col]
+                    self.delete(self.cell_objects[row][col])
+                    self.delete(self.text_objects[row][col])
+                    del self.cell_objects[row][col]
+                    del self.text_objects[row][col]
 
         self.pixel_width = new_pixel_width
         self.cell_width = new_cell_width
         self.redraw()
 
-    def create_cell(self, row, col):
-        cell = GridCell(self, row, col)
-        cell.bind("<Button-4>", lambda e: self.scroll(tk.SCROLL, -1, tk.UNITS))
-        cell.bind("<Button-5>", lambda e: self.scroll(tk.SCROLL, 1, tk.UNITS))
-        cell.bind("<Button-1>", self.on_click)
-        cell.bind("<B1-Motion>", self.on_drag)
-
-        return cell
-
     def on_move_cursor(self, row_offset, col_offset, keep_selection=False):
         self.inputs.move_cursor(row_offset, col_offset, keep_selection)
 
-    def on_click(self, event):
+    def on_click(self, event, keep_selection=False):
         self.focus_set()
         col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
         row = (event.y_root - self.winfo_rooty()) // GRID_SIZE
         if 0 <= row <= GRID_ROWS and 0 <= col:
-            self.inputs.set_cursor(row, col + self.current_col)
+            self.inputs.set_cursor(row, col + self.current_col, keep_selection)
 
     def on_drag(self, event):
         col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
@@ -180,13 +154,19 @@ class Grid(tk.Frame):
         self.dirty = False
         for row in range(GRID_ROWS):
             for col in range(self.cell_width):
-                cell = self.cells[row][col]
+                cell = self.cell_objects[row][col]
                 if self.current_col + col < self.inputs.length(row):
-                    cell.highlight(self.inputs.is_selected(row, self.current_col + col))
-                    cell.set_text(self.inputs.get(row, self.current_col + col))
-                    cell.place()
+                    if self.inputs.is_selected(row, self.current_col + col):
+                        fg = "white"
+                        bg = "#24b"
+                    else:
+                        fg = "black"
+                        bg = "white"
+                    self.itemconfig(self.text_objects[row][col], state="normal", text=self.inputs.get(row, self.current_col + col), fill=fg)
+                    self.itemconfig(self.cell_objects[row][col], state="normal", fill=bg)
                 else:
-                    cell.hide()
+                    self.itemconfig(self.text_objects[row][col], state="hidden")
+                    self.itemconfig(self.cell_objects[row][col], state="hidden")
         self.update_scrollbar()
 
     def update_scrollbar(self):
