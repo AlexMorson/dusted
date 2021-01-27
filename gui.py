@@ -70,13 +70,17 @@ class LevelView(tk.Canvas):
             self.position_object = None
 
     def add_coordinate(self, frame, x, y):
-        if frame < len(self.coords): # clear suffix
+        if frame < len(self.coords): # Clear suffix
             for i in self.path_objects[max(0, frame-1):]:
                 self.delete(i)
             self.path_objects = self.path_objects[:max(0, frame-1)]
             self.coords = self.coords[:frame]
+        elif frame > len(self.coords): # Loaded state in the future, pad values
+            self.path_objects.extend([-1] * (frame - min(1, len(self.coords)) + 1))
+            self.coords.extend([(x, y)] * (frame - len(self.coords) + 1))
+            return
 
-        self.coords.append((x, y-48))
+        self.coords.append((x, y))
         if frame > 0:
             i = self.create_line(*self.coords[frame-1], *self.coords[frame])
             self.fix_object(i)
@@ -236,7 +240,7 @@ class App(tk.Tk):
                 line = dustforce.stdout.get_nowait()
                 if m := re.match(COORD_PATTERN, line):
                     frame, x, y = map(int, m.group(1, 2, 3))
-                    self.canvas.add_coordinate(frame, x, y)
+                    self.canvas.add_coordinate(frame, x, y-48)
         except queue.Empty:
             self.after(16, self.handle_stdout)
 
