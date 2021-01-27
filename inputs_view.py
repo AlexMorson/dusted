@@ -108,12 +108,12 @@ class Inputs(Broadcaster):
 
 
 class Grid(tk.Canvas):
-    def __init__(self, parent, scrollbar, inputs):
+    def __init__(self, parent, scrollbar, inputs, cursor):
         super().__init__(parent, height=GRID_SIZE*(GRID_ROWS+1), borderwidth=0, highlightthickness=0)
 
         self.scrollbar = scrollbar
         self.inputs = inputs
-        self.cursor = Cursor(inputs)
+        self.cursor = cursor
 
         self.pixel_width = 0 # view width
         self.cell_width = 0 # number of cells in view
@@ -283,7 +283,7 @@ class Grid(tk.Canvas):
 
 
 class InputsView(tk.Frame):
-    def __init__(self, parent, inputs):
+    def __init__(self, parent, inputs, cursor):
         super().__init__(parent)
 
         for row, text in enumerate(["X", "Y", "Jump", "Dash", "Fall", "Light", "Heavy", "Frame"]):
@@ -291,7 +291,7 @@ class InputsView(tk.Frame):
             label.grid(row=row, column=0, sticky="e")
 
         scrollbar = tk.Scrollbar(self, orient=tk.HORIZONTAL)
-        grid = Grid(self, scrollbar, inputs)
+        grid = Grid(self, scrollbar, inputs, cursor)
         scrollbar.config(command=grid.on_scroll)
 
         grid.grid(row=0, rowspan=GRID_ROWS+1, column=1, sticky="ew")

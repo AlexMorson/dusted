@@ -15,25 +15,25 @@ COORD_PATTERN = r"(\d*) (-?\d*) (-?\d*)"
 
 
 class LevelView(tk.Canvas):
-    def __init__(self, parent, app):
+    def __init__(self, parent, cursor):
         super().__init__(parent, height=0)
-        self.app = app
 
-        # Events
-        self.bind("<Button-4>", self.scroll) # Linux
-        self.bind("<Button-5>", self.scroll)
-        self.bind("<MouseWheel>", self.scroll) # Windows
-        self.bind("<Button-1>", self.click)
-        self.bind("<B1-Motion>", self.drag)
-        self.bind("<Button-3>", self.right_click)
+        self.cursor = cursor
+        self.cursor.subscribe(self.on_cursor_move)
 
-        # State
+        self.bind("<Button-4>", self.on_scroll) # Linux
+        self.bind("<Button-5>", self.on_scroll)
+        self.bind("<MouseWheel>", self.on_scroll) # Windows
+        self.bind("<Button-1>", self.on_click)
+        self.bind("<B1-Motion>", self.on_drag)
+        self.bind("<Button-3>", self.on_right_click)
+
         self.zoom_level = 1
         self.offset_x = self.offset_y = 0
         self.prev_mx = self.prev_my = 0
+        self.coords = []
         self.level_objects = []
         self.path_objects = []
-        self.coords = []
         self.position_object = None
 
     def clear(self):
@@ -104,18 +104,22 @@ class LevelView(tk.Canvas):
         for i in self.all_objects():
             self.move(i, dx, dy)
 
-    def scroll(self, event):
+    def on_cursor_move(self):
+        _, col = self.cursor.position()
+        self.select_frame(col)
+
+    def on_scroll(self, event):
         if event.num == 4 or event.delta == 120:
             scale = 1.25
         if event.num == 5 or event.delta == -120:
             scale = 0.8
         self.zoom(event.x, event.y, scale)
 
-    def click(self, event):
+    def on_click(self, event):
         self.prev_mx = event.x
         self.prev_my = event.y
 
-    def drag(self, event):
+    def on_drag(self, event):
         dx = event.x - self.prev_mx
         dy = event.y - self.prev_my
 
@@ -124,7 +128,7 @@ class LevelView(tk.Canvas):
         self.prev_mx = event.x
         self.prev_my = event.y
 
-    def right_click(self, event):
+    def on_right_click(self, event):
         cx = (event.x - self.offset_x) / self.zoom_level
         cy = (event.y - self.offset_y) / self.zoom_level
 
@@ -137,7 +141,8 @@ class LevelView(tk.Canvas):
                 closest = i
 
         if closest is not None:
-            self.app.select_frame(closest)
+            row, _ = self.cursor.position()
+            self.cursor.set(row, closest)
 
 
 class ReplayDialog(tk.Toplevel):
@@ -205,13 +210,14 @@ class App(tk.Tk):
         self.config(menu=menubar)
 
         self.inputs = inputs_view.Inputs(["10243", "10000000000", "10111111111aaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb00000000000000000000000000001111111111", "alsfkjasdflgikjh", "lfshberouibhreoiugsdliggggggggggggggggggggkjjjjjjjjjjjjjjjjjjjjjjjjjeqwwwwwwwwwwwwwwwwwwwwwwwwwwwwh", "wowee", "sdoligkrwjghsipo"])
+        self.cursor = inputs_view.Cursor(self.inputs)
 
         # Widgets
         buttons = tk.Frame(self)
         button1 = tk.Button(buttons, text="Watch", command=self.watch)
         button2 = tk.Button(buttons, text="Load State and Watch", command=self.load_state_and_watch)
-        canvas = LevelView(self, app=self)
-        inputs = inputs_view.InputsView(self, self.inputs)
+        canvas = LevelView(self, self.cursor)
+        inputs = inputs_view.InputsView(self, self.inputs, self.cursor)
 
         # Layout
         button1.pack(side=tk.LEFT)
