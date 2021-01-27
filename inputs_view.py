@@ -120,7 +120,7 @@ class Grid(tk.Canvas):
         self.grid_objects = [[] for _ in range(GRID_ROWS)]
         self.frame_objects = []
         self.current_col = 0
-        self.dirty = False
+        self.redraw_scheduled = False
 
         self.inputs.subscribe(self.redraw)
         self.cursor.subscribe(self.on_cursor_move)
@@ -225,15 +225,14 @@ class Grid(tk.Canvas):
         self.redraw()
 
     def redraw(self, force=False):
-        self.dirty = True
         if force:
             self._redraw()
-        else:
+        elif not self.redraw_scheduled:
+            self.redraw_scheduled = True
             self.after_idle(self._redraw)
 
     def _redraw(self):
-        if not self.dirty: return
-        self.dirty = False
+        self.redraw_scheduled = False
 
         frame_ticks = 0
         for col in range(self.cell_width):
@@ -308,11 +307,12 @@ class App(tk.Tk):
         for _ in range(7):
             inputs.append("".join(random.choice("0123456789ab") for _ in range(random.randint(800, 1000))))
         inputs = Inputs(inputs)
+        cursor = Cursor(inputs)
 
         frame = tk.Frame()
         label = tk.Label(frame, text="HI")
         label.pack(fill=tk.BOTH, expand=1)
-        inputs_view = InputsView(frame, inputs)
+        inputs_view = InputsView(frame, inputs, cursor)
         inputs_view.pack(fill=tk.X)
         frame.pack(fill=tk.BOTH)
 
