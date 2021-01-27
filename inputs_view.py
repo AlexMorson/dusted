@@ -69,6 +69,9 @@ class Cursor(Broadcaster):
             self.start_col = self.current_col
         self._update_selection_vars()
 
+    def position(self):
+        return self.current_row, self.current_col
+
     def _update_selection_vars(self):
         self.selection_top    = min(self.start_row, self.current_row)
         self.selection_bottom = max(self.start_row, self.current_row)
@@ -120,15 +123,15 @@ class Grid(tk.Canvas):
         self.dirty = False
 
         self.inputs.subscribe(self.redraw)
-        self.cursor.subscribe(lambda: self.redraw(True))
+        self.cursor.subscribe(self.on_cursor_move)
 
         self.bind("<Configure>", lambda e: self.resize())
 
         self.bind("<Button-1>", self.on_click)
         self.bind("<Shift-Button-1>", lambda e: self.on_click(e, True))
         self.bind("<B1-Motion>", self.on_drag)
-        self.bind("<Button-4>", lambda e: self.scroll(tk.SCROLL, -1, tk.UNITS))
-        self.bind("<Button-5>", lambda e: self.scroll(tk.SCROLL,  1, tk.UNITS))
+        self.bind("<Button-4>", lambda e: self.on_scroll(tk.SCROLL, -1, tk.UNITS))
+        self.bind("<Button-5>", lambda e: self.on_scroll(tk.SCROLL,  1, tk.UNITS))
 
         self.bind("<KeyPress-Left>" , lambda e: self.cursor.move( 0, -1))
         self.bind("<KeyPress-Right>", lambda e: self.cursor.move( 0,  1))
@@ -199,6 +202,28 @@ class Grid(tk.Canvas):
         if event.char:
             self.cursor.write(event.char)
 
+    def on_scroll(self, command, *args):
+        if command == tk.MOVETO:
+            f = max(0, min(1, float(args[0])))
+            col = int(f * self.inputs.max_length())
+            self.current_col = col
+        elif command == tk.SCROLL:
+            direction, size = args
+            direction = int(direction)
+            if size == tk.UNITS:
+                self.current_col += direction
+            elif size == tk.PAGES:
+                self.current_col += direction * (self.cell_width - 1)
+            self.current_col = max(0, min(self.inputs.max_length(), self.current_col))
+        self.redraw()
+
+    def on_cursor_move(self):
+        row, col = self.cursor.position()
+        if not (self.current_col <= col < self.current_col + self.cell_width - 1):
+            # Scroll so that the cursor is in the middle of the view
+            self.current_col = max(0, min(self.inputs.max_length(), col - self.cell_width // 2))
+        self.redraw()
+
     def redraw(self, force=False):
         self.dirty = True
         if force:
@@ -256,21 +281,6 @@ class Grid(tk.Canvas):
 
         self.scrollbar.set(left, right)
 
-    def scroll(self, command, *args):
-        if command == tk.MOVETO:
-            f = max(0, min(1, float(args[0])))
-            col = int(f * self.inputs.max_length())
-            self.current_col = col
-        elif command == tk.SCROLL:
-            direction, size = args
-            direction = int(direction)
-            if size == tk.UNITS:
-                self.current_col += direction
-            elif size == tk.PAGES:
-                self.current_col += direction * (self.cell_width - 1)
-            self.current_col = max(0, min(self.inputs.max_length(), self.current_col))
-        self.redraw()
-
 
 class InputsView(tk.Frame):
     def __init__(self, parent, inputs):
@@ -282,7 +292,7 @@ class InputsView(tk.Frame):
 
         scrollbar = tk.Scrollbar(self, orient=tk.HORIZONTAL)
         grid = Grid(self, scrollbar, inputs)
-        scrollbar.config(command=grid.scroll)
+        scrollbar.config(command=grid.on_scroll)
 
         grid.grid(row=0, rowspan=GRID_ROWS+1, column=1, sticky="ew")
         scrollbar.grid(row=GRID_ROWS+1, column=1, sticky="ew")
