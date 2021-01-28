@@ -62,7 +62,7 @@ class LevelView(tk.Canvas):
 
     def select_frame(self, frame):
         if self.position_object is not None: self.delete(self.position_object)
-        if frame < len(self.coords):
+        if 0 <= frame < len(self.coords):
             x, y = self.coords[frame]
             self.position_object = self.create_rectangle(x-24, y-48, x+24, y+48)
             self.fix_object(self.position_object)
