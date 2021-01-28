@@ -28,37 +28,27 @@ class LevelView(tk.Canvas):
         self.bind("<B1-Motion>", self.on_drag)
         self.bind("<Button-3>", self.on_right_click)
 
+        self.reset()
+
+    def reset(self):
         self.zoom_level = 1
         self.offset_x = self.offset_y = 0
         self.prev_mx = self.prev_my = 0
         self.coords = []
-        self.level_objects = []
         self.path_objects = []
-        self.position_object = None
-
-    def clear(self):
-        self.zoom_level = 1
-        self.offset_x = self.offset_y = 0
-        for i in self.level_objects: self.delete(i)
-        self.level_objects = []
-        for i in self.path_objects: self.delete(i)
-        self.path_objects = []
-        if self.position_object is not None: self.delete(self.position_object)
         self.position_object = None
 
     def load_level(self, level_id):
-        self.clear()
+        self.reset()
         self.level_id = level_id
 
         level = fetch_level(level_id)
         tiles = {(x, y) for (l, x, y), t in level.tiles.items() if l == 19}
         outlines = geom.tile_outlines(tiles)
         for outline in outlines:
-            i = self.create_polygon(*[(48*x, 48*y) for x, y in outline[0]], fill="#bbb")
-            self.level_objects.append(i)
+            self.create_polygon(*[(48*x, 48*y) for x, y in outline[0]], fill="#bbb")
             for hole in outline[1:]:
-                i = self.create_polygon(*[(48*x, 48*y) for x, y in hole], fill="#d9d9d9")
-                self.level_objects.append(i)
+                self.create_polygon(*[(48*x, 48*y) for x, y in hole], fill="#d9d9d9")
 
     def select_frame(self, frame):
         if self.position_object is not None: self.delete(self.position_object)
@@ -90,23 +80,16 @@ class LevelView(tk.Canvas):
         self.scale(i, 0, 0, self.zoom_level, self.zoom_level)
         self.move(i, self.offset_x, self.offset_y)
 
-    def all_objects(self):
-        yield from self.level_objects
-        yield from self.path_objects
-        if self.position_object: yield self.position_object
-
     def zoom(self, x, y, scale):
         self.zoom_level *= scale
         self.offset_x = (self.offset_x - x) * scale + x;
         self.offset_y = (self.offset_y - y) * scale + y;
-        for i in self.all_objects():
-            self.scale(i, x, y, scale, scale)
+        self.scale("all", x, y, scale, scale)
 
     def pan(self, dx, dy):
         self.offset_x += dx
         self.offset_y += dy
-        for i in self.all_objects():
-            self.move(i, dx, dy)
+        self.move("all", dx, dy)
 
     def on_cursor_move(self):
         _, col = self.cursor.position()
