@@ -47,6 +47,14 @@ class Cursor(Broadcaster):
             char
         )
 
+    def delete_cols(self):
+        self.inputs.delete_block(
+            0, self.selection_left,
+            GRID_ROWS, self.selection_right
+        )
+        self.start_col = self.current_col = self.selection_left
+        self._update_selection_vars()
+
     def is_selected(self, row, col):
         return (
             self.selection_top <= row <= self.selection_bottom and
@@ -97,6 +105,12 @@ class Inputs(Broadcaster):
                     self.inputs[row][col] = char
         self.broadcast()
 
+    def delete_block(self, top, left, bottom, right):
+        for row in range(max(0, top), min(GRID_ROWS, bottom+1)):
+            del self.inputs[row][max(0, left) : right+1]
+        self._max_length = max(len(row) for row in self.inputs)
+        self.broadcast()
+
     def max_length(self):
         return self._max_length
 
@@ -125,11 +139,15 @@ class Grid(tk.Canvas):
         self.inputs.subscribe(self.redraw)
         self.cursor.subscribe(self.on_cursor_move)
 
+        self.context_menu = tk.Menu(self, tearoff=0)
+        self.context_menu.add_command(label="Delete frames", command=self.cursor.delete_cols)
+
         self.bind("<Configure>", lambda e: self.resize())
 
         self.bind("<Button-1>", self.on_click)
         self.bind("<Shift-Button-1>", lambda e: self.on_click(e, True))
         self.bind("<B1-Motion>", self.on_drag)
+        self.bind("<ButtonRelease-3>", self.on_right_click)
         self.bind("<Button-4>", lambda e: self.on_scroll(tk.SCROLL, -1, tk.UNITS))
         self.bind("<Button-5>", lambda e: self.on_scroll(tk.SCROLL,  1, tk.UNITS))
 
@@ -197,6 +215,9 @@ class Grid(tk.Canvas):
         row = (event.y_root - self.winfo_rooty()) // GRID_SIZE
         if 0 <= row <= GRID_ROWS and 0 <= col:
             self.cursor.set(row, col + self.current_col, True)
+
+    def on_right_click(self, event):
+        self.context_menu.tk_popup(event.x_root, event.y_root)
 
     def on_key(self, event):
         if event.char:
@@ -275,8 +296,9 @@ class Grid(tk.Canvas):
         left = self.current_col
         right = self.current_col + self.cell_width - 1
 
-        left /= self.inputs.max_length()
-        right /= self.inputs.max_length()
+        max_length = max(1, self.inputs.max_length())
+        left /= max_length
+        right /= max_length
 
         self.scrollbar.set(left, right)
 
