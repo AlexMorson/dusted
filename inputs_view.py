@@ -32,6 +32,8 @@ class Broadcaster:
 
 
 class Cursor(Broadcaster):
+    """Manages the cursor and current selection."""
+
     def __init__(self, inputs):
         super().__init__()
         self.inputs = inputs
@@ -43,24 +45,27 @@ class Cursor(Broadcaster):
         self.selection_left = self.selection_right = 0
 
     def write(self, char):
-        self.inputs.set_block(
+        self.inputs.fill_block(
             self.selection_top, self.selection_left,
-            self.selection_bottom, self.selection_right,
+            self.selection_bottom+1, self.selection_right+1,
             char
         )
 
-    def delete_cols(self):
-        self.inputs.delete_block(
-            0, self.selection_left,
-            INTENT_COUNT, self.selection_right
+    def read(self):
+        return self.inputs.get_block(
+            self.selection_top, self.selection_left,
+            self.selection_bottom+1, self.selection_right+1,
         )
-        self.start_col = self.current_col = self.selection_left
+
+    def delete_cols(self):
+        self.inputs.delete_cols(self.selection_left, self.selection_right+1)
+        self.start_col = self.current_col = min(len(self.inputs)-1, self.selection_left)
         self._update_selection_vars()
 
     def clear(self):
         self.inputs.clear_block(
             self.selection_top, self.selection_left,
-            self.selection_bottom, self.selection_right,
+            self.selection_bottom+1, self.selection_right+1,
         )
 
     def is_selected(self, row, col):
@@ -76,12 +81,6 @@ class Cursor(Broadcaster):
             self.start_row = self.current_row
             self.start_col = self.current_col
         self._update_selection_vars()
-
-    def get(self):
-        return self.inputs.get_block(
-            self.selection_top, self.selection_left,
-            self.selection_bottom, self.selection_right,
-        )
 
     def move(self, row_offset, col_offset, keep_selection=False):
         self.current_row += row_offset
@@ -103,48 +102,82 @@ class Cursor(Broadcaster):
 
 
 class Inputs(Broadcaster):
+    """Stores a rectangular grid of inputs."""
+
     def __init__(self, inputs):
         super().__init__()
         self.load(inputs)
 
+    def __len__(self):
+        """Return the number of frames that the inputs cover."""
+        return self.length
+
     def load(self, inputs):
-        self.inputs = [list(row) for row in inputs]
-        self._max_length = max(len(row) for row in inputs)
+        """Load a (not necessarily rectangular) grid of inputs."""
+        self.length = max(len(line) for line in inputs)
+        self.inputs = []
+        for line, default in zip(inputs, DEFAULT_INPUTS):
+            line_length = len(line)
+            # Pad rows to the same length
+            self.inputs.append(list(line) + [default] * (self.length - line_length))
         self.broadcast()
 
-    def set_block(self, top, left, bottom, right, char):
-        for row in range(max(0, top), min(INTENT_COUNT, bottom+1)):
+    def fill_block(self, top, left, bottom, right, char):
+        """Fill a block of the grid with a single character."""
+        assert 0 <= top <= bottom <= INTENT_COUNT and 0 <= left <= right <= self.length
+        for row in range(max(0, top), min(INTENT_COUNT, bottom)):
             if char in VALID_INPUTS[row]:
-                for col in range(max(0, left), min(self.length(row), right+1)):
+                for col in range(left, right):
                     self.inputs[row][col] = char
         self.broadcast()
 
-    def delete_block(self, top, left, bottom, right):
-        for row in range(max(0, top), min(INTENT_COUNT, bottom+1)):
-            del self.inputs[row][max(0, left) : right+1]
-        self._max_length = max(len(row) for row in self.inputs)
+    def set_block(self, top, left, block):
+        """Paste a block of inputs into the grid, appending columns if needed."""
+        assert 0 <= top and 0 <= left and top + len(block) <= INTENT_COUNT
+        # Extend the grid if needed
+        block_right = left + max(len(row) for row in block)
+        if block_right > self.length:
+            self.insert(self.length, self.length - block_right)
+        # Copy over the new block
+        for row, line in enumerate(block, start=top):
+            for col, char in enumerate(row, start=left):
+                if char in VALID_INPUTS[row]:
+                    self.inputs[row][col] = char
+        self.broadcast()
+
+    def delete_cols(self, left, right):
+        """Delete some columns of the grid."""
+        assert 0 <= left <= right <= self.length
+        for row in range(0, INTENT_COUNT):
+            del self.inputs[row][left:right]
+        self.length -= right - left
+        self.broadcast()
+
+    def insert_cols(self, col, n):
+        """Insert default-initialised columns into the grid."""
+        assert 0 <= col <= self.length
+        for row in range(0, INTENT_COUNT):
+            self.inputs[row][col:col] = [DEFAULT_INPUTS[row]] * n
+        self.length += n
         self.broadcast()
 
     def clear_block(self, top, left, bottom, right):
-        for row in range(max(0, top), min(INTENT_COUNT, bottom+1)):
+        """Reset a block of the grid to the default inputs."""
+        assert 0 <= top <= bottom <= INTENT_COUNT and 0 <= left <= right <= self.length
+        for row in range(top, bottom):
             char = DEFAULT_INPUTS[row]
-            for col in range(max(0, left), min(self.length(row), right+1)):
+            for col in range(left, right):
                 self.inputs[row][col] = char
         self.broadcast()
 
     def get_block(self, top, left, bottom, right):
-        block = []
-        for row in range(max(0, top), min(INTENT_COUNT, bottom+1)):
-            block.append(list(self.inputs[row][max(0, left) : right+1]))
-        return block
-
-    def max_length(self):
-        return self._max_length
-
-    def length(self, row):
-        return len(self.inputs[row])
+        """Return a block of the grid."""
+        assert 0 <= top <= bottom <= INTENT_COUNT and 0 <= left <= right <= self.length
+        return [list(self.inputs[row][left:right]) for row in range(top, bottom)]
 
     def get(self, row, col):
+        """Return a single cell of the grid."""
+        assert 0 <= row < INTENT_COUNT and 0 <= col < self.length
         return self.inputs[row][col]
 
 
@@ -242,7 +275,7 @@ class Grid(tk.Canvas):
         self.cursor.clear()
 
     def copy(self):
-        selection = self.cursor.get()
+        selection = self.cursor.read()
         self.clipboard_clear()
         self.clipboard_append("\n".join("".join(row) for row in selection))
 
@@ -272,7 +305,7 @@ class Grid(tk.Canvas):
     def on_scroll(self, command, *args):
         if command == tk.MOVETO:
             f = max(0, min(1, float(args[0])))
-            col = int(f * self.inputs.max_length())
+            col = int(f * len(self.inputs))
             self.current_col = col
         elif command == tk.SCROLL:
             direction, size = args
@@ -281,14 +314,14 @@ class Grid(tk.Canvas):
                 self.current_col += direction
             elif size == tk.PAGES:
                 self.current_col += direction * (self.cell_width - 1)
-            self.current_col = max(0, min(self.inputs.max_length(), self.current_col))
+            self.current_col = max(0, min(len(self.inputs), self.current_col))
         self.redraw()
 
     def on_cursor_move(self):
         row, col = self.cursor.position()
         if not (self.current_col <= col < self.current_col + self.cell_width - 1):
             # Scroll so that the cursor is in the middle of the view
-            self.current_col = max(0, min(self.inputs.max_length(), col - self.cell_width // 2))
+            self.current_col = max(0, min(len(self.inputs), col - self.cell_width // 2))
         self.redraw()
 
     def redraw(self, force=False):
@@ -306,7 +339,7 @@ class Grid(tk.Canvas):
             # Draw cells
             for row in range(INTENT_COUNT):
                 rect, text = self.grid_objects[row+1][col]
-                if self.current_col + col < self.inputs.length(row):
+                if self.current_col + col < len(self.inputs):
                     if self.cursor.is_selected(row, self.current_col + col):
                         fg = "white"
                         bg = "#24b"
@@ -345,9 +378,9 @@ class Grid(tk.Canvas):
         left = self.current_col
         right = self.current_col + self.cell_width - 1
 
-        max_length = max(1, self.inputs.max_length())
-        left /= max_length
-        right /= max_length
+        length = max(1, len(self.inputs))
+        left /= length
+        right /= length
 
         self.scrollbar.set(left, right)
 
