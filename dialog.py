@@ -21,9 +21,7 @@ class Dialog(tk.Toplevel):
         self.grab_set()
 
     def _ok(self):
-        try:
-            self.ok(self.entry.get())
-        finally:
+        if self.ok(self.entry.get()):
             self.destroy()
 
     def ok(self, text):

@@ -139,7 +139,7 @@ class ReplayDialog(Dialog):
 
     def ok(self, text):
         self.app.load_replay(text)
-        self.destroy()
+        return True
 
 
 class LevelDialog(Dialog):
@@ -149,7 +149,7 @@ class LevelDialog(Dialog):
 
     def ok(self, text):
         self.app.load_level(text)
-        self.destroy()
+        return True
 
 
 class App(tk.Tk):

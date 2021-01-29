@@ -194,7 +194,14 @@ class InsertFramesDialog(Dialog):
         self.cursor = cursor
 
     def ok(self, text):
-        self.cursor.insert_cols(int(text))
+        try:
+            n = int(text)
+        except ValueError:
+            return False
+        if n >= 0:
+            self.cursor.insert_cols(n)
+            return True
+        return False
 
 
 class Grid(tk.Canvas):
