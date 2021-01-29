@@ -7,6 +7,7 @@ INTENT_COUNT = 7
 GRID_ROWS = INTENT_COUNT + 1
 GRID_SIZE = 20
 
+DEFAULT_INPUTS = "1100000"
 VALID_INPUTS = [
     "012",
     "012",
@@ -56,6 +57,12 @@ class Cursor(Broadcaster):
         self.start_col = self.current_col = self.selection_left
         self._update_selection_vars()
 
+    def clear(self):
+        self.inputs.clear_block(
+            self.selection_top, self.selection_left,
+            self.selection_bottom, self.selection_right,
+        )
+
     def is_selected(self, row, col):
         return (
             self.selection_top <= row <= self.selection_bottom and
@@ -69,6 +76,12 @@ class Cursor(Broadcaster):
             self.start_row = self.current_row
             self.start_col = self.current_col
         self._update_selection_vars()
+
+    def get(self):
+        return self.inputs.get_block(
+            self.selection_top, self.selection_left,
+            self.selection_bottom, self.selection_right,
+        )
 
     def move(self, row_offset, col_offset, keep_selection=False):
         self.current_row += row_offset
@@ -112,6 +125,19 @@ class Inputs(Broadcaster):
         self._max_length = max(len(row) for row in self.inputs)
         self.broadcast()
 
+    def clear_block(self, top, left, bottom, right):
+        for row in range(max(0, top), min(INTENT_COUNT, bottom+1)):
+            char = DEFAULT_INPUTS[row]
+            for col in range(max(0, left), min(self.length(row), right+1)):
+                self.inputs[row][col] = char
+        self.broadcast()
+
+    def get_block(self, top, left, bottom, right):
+        block = []
+        for row in range(max(0, top), min(INTENT_COUNT, bottom+1)):
+            block.append(list(self.inputs[row][max(0, left) : right+1]))
+        return block
+
     def max_length(self):
         return self._max_length
 
@@ -141,6 +167,9 @@ class Grid(tk.Canvas):
         self.cursor.subscribe(self.on_cursor_move)
 
         self.context_menu = tk.Menu(self, tearoff=0)
+        self.context_menu.add_command(label="Cut", command=self.cut)
+        self.context_menu.add_command(label="Copy", command=self.copy)
+        self.context_menu.add_command(label="Paste", command=self.paste)
         self.context_menu.add_command(label="Delete frames", command=self.cursor.delete_cols)
 
         self.bind("<Configure>", lambda e: self.resize())
@@ -151,6 +180,10 @@ class Grid(tk.Canvas):
         self.bind("<ButtonRelease-3>", self.on_right_click)
         self.bind("<Button-4>", lambda e: self.on_scroll(tk.SCROLL, -1, tk.UNITS))
         self.bind("<Button-5>", lambda e: self.on_scroll(tk.SCROLL,  1, tk.UNITS))
+
+        self.bind("<Control-KeyPress-x>", lambda e: self.cut())
+        self.bind("<Control-KeyPress-c>", lambda e: self.copy())
+        self.bind("<Control-KeyPress-v>", lambda e: self.paste())
 
         self.bind("<KeyPress-Left>" , lambda e: self.cursor.move( 0, -1))
         self.bind("<KeyPress-Right>", lambda e: self.cursor.move( 0,  1))
@@ -203,6 +236,18 @@ class Grid(tk.Canvas):
         self.pixel_width = new_pixel_width
         self.cell_width = new_cell_width
         self.redraw()
+
+    def cut(self):
+        self.copy()
+        self.cursor.clear()
+
+    def copy(self):
+        selection = self.cursor.get()
+        self.clipboard_clear()
+        self.clipboard_append("\n".join("".join(row) for row in selection))
+
+    def paste(self):
+        raise NotImplementedError
 
     def on_click(self, event, keep_selection=False):
         self.focus_set()
