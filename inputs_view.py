@@ -218,6 +218,9 @@ class Grid(tk.Canvas):
         self.bind("<Control-KeyPress-c>", lambda e: self.copy())
         self.bind("<Control-KeyPress-v>", lambda e: self.paste())
 
+        self.bind("<Delete>", lambda e: self.cursor.clear())
+        self.bind("<BackSpace>", lambda e: self.cursor.clear())
+
         self.bind("<KeyPress-Left>" , lambda e: self.cursor.move( 0, -1))
         self.bind("<KeyPress-Right>", lambda e: self.cursor.move( 0,  1))
         self.bind("<KeyPress-Up>"   , lambda e: self.cursor.move(-1,  0))
