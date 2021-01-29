@@ -1,7 +1,7 @@
 import random
-
 import tkinter as tk
 
+from dialog import Dialog
 
 INTENT_COUNT = 7
 GRID_ROWS = INTENT_COUNT + 1
@@ -60,6 +60,9 @@ class Cursor(Broadcaster):
             self.selection_top, self.selection_left,
             self.selection_bottom + 1, self.selection_right + 1,
         )
+
+    def insert_cols(self, n):
+        self.inputs.insert_cols(self.selection_left, n)
 
     def delete_cols(self):
         self.inputs.delete_cols(self.selection_left, self.selection_right + 1)
@@ -185,6 +188,15 @@ class Inputs(Broadcaster):
         return self.inputs[row][col]
 
 
+class InsertFramesDialog(Dialog):
+    def __init__(self, parent, cursor):
+        super().__init__(parent, "Number of frames: ", "Insert")
+        self.cursor = cursor
+
+    def ok(self, text):
+        self.cursor.insert_cols(int(text))
+
+
 class Grid(tk.Canvas):
     def __init__(self, parent, scrollbar, inputs, cursor):
         super().__init__(parent, height=GRID_SIZE*(GRID_ROWS+1), borderwidth=0, highlightthickness=0)
@@ -207,6 +219,7 @@ class Grid(tk.Canvas):
         self.context_menu.add_command(label="Cut", command=self.cut)
         self.context_menu.add_command(label="Copy", command=self.copy)
         self.context_menu.add_command(label="Paste", command=self.paste)
+        self.context_menu.add_command(label="Insert frames", command=self.insert_frames)
         self.context_menu.add_command(label="Delete frames", command=self.cursor.delete_cols)
 
         self.bind("<Configure>", lambda e: self.resize())
@@ -294,6 +307,9 @@ class Grid(tk.Canvas):
             return
         block = [list(line) for line in inputs.split("\n")]
         self.cursor.paste(block)
+
+    def insert_frames(self):
+        InsertFramesDialog(self, self.cursor)
 
     def on_click(self, event, keep_selection=False):
         self.focus_set()
