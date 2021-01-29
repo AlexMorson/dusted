@@ -47,25 +47,25 @@ class Cursor(Broadcaster):
     def write(self, char):
         self.inputs.fill_block(
             self.selection_top, self.selection_left,
-            self.selection_bottom+1, self.selection_right+1,
+            self.selection_bottom + 1, self.selection_right + 1,
             char
         )
 
     def read(self):
         return self.inputs.get_block(
             self.selection_top, self.selection_left,
-            self.selection_bottom+1, self.selection_right+1,
+            self.selection_bottom + 1, self.selection_right + 1,
         )
 
     def delete_cols(self):
-        self.inputs.delete_cols(self.selection_left, self.selection_right+1)
-        self.start_col = self.current_col = min(len(self.inputs)-1, self.selection_left)
+        self.inputs.delete_cols(self.selection_left, self.selection_right + 1)
+        self.start_col = self.current_col = min(len(self.inputs) - 1, self.selection_left)
         self._update_selection_vars()
 
     def clear(self):
         self.inputs.clear_block(
             self.selection_top, self.selection_left,
-            self.selection_bottom+1, self.selection_right+1,
+            self.selection_bottom + 1, self.selection_right + 1,
         )
 
     def is_selected(self, row, col):
@@ -75,16 +75,16 @@ class Cursor(Broadcaster):
         )
 
     def set(self, row, col, keep_selection=False):
-        self.current_row = row
-        self.current_col = col
+        self.current_row = max(0, min(INTENT_COUNT - 1, row))
+        self.current_col = max(0, min(len(self.inputs) - 1, col))
         if not keep_selection:
             self.start_row = self.current_row
             self.start_col = self.current_col
         self._update_selection_vars()
 
     def move(self, row_offset, col_offset, keep_selection=False):
-        self.current_row += row_offset
-        self.current_col += col_offset
+        self.current_row = max(0, min(INTENT_COUNT - 1, self.current_row + row_offset))
+        self.current_col = max(0, min(len(self.inputs) - 1, self.current_col + col_offset))
         if not keep_selection:
             self.start_row = self.current_row
             self.start_col = self.current_col
