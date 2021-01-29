@@ -51,6 +51,10 @@ class Cursor(Broadcaster):
             char
         )
 
+    def paste(self, block):
+        if self.selection_top + len(block) <= INTENT_COUNT:
+            self.inputs.set_block(self.selection_top, self.selection_left, block)
+
     def read(self):
         return self.inputs.get_block(
             self.selection_top, self.selection_left,
@@ -140,7 +144,7 @@ class Inputs(Broadcaster):
             self.insert(self.length, self.length - block_right)
         # Copy over the new block
         for row, line in enumerate(block, start=top):
-            for col, char in enumerate(row, start=left):
+            for col, char in enumerate(line, start=left):
                 if char in VALID_INPUTS[row]:
                     self.inputs[row][col] = char
         self.broadcast()
@@ -283,7 +287,13 @@ class Grid(tk.Canvas):
         self.clipboard_append("\n".join("".join(row) for row in selection))
 
     def paste(self):
-        raise NotImplementedError
+        try:
+            inputs = self.clipboard_get()
+        except tk.TclError:
+            # Clipboard cannot be accessed
+            return
+        block = [list(line) for line in inputs.split("\n")]
+        self.cursor.paste(block)
 
     def on_click(self, event, keep_selection=False):
         self.focus_set()
