@@ -3,8 +3,9 @@ import random
 import tkinter as tk
 
 
+INTENT_COUNT = 7
+GRID_ROWS = INTENT_COUNT + 1
 GRID_SIZE = 20
-GRID_ROWS = 7
 
 VALID_INPUTS = [
     "012",
@@ -50,7 +51,7 @@ class Cursor(Broadcaster):
     def delete_cols(self):
         self.inputs.delete_block(
             0, self.selection_left,
-            GRID_ROWS, self.selection_right
+            INTENT_COUNT, self.selection_right
         )
         self.start_col = self.current_col = self.selection_left
         self._update_selection_vars()
@@ -99,14 +100,14 @@ class Inputs(Broadcaster):
         self.broadcast()
 
     def set_block(self, top, left, bottom, right, char):
-        for row in range(max(0, top), min(GRID_ROWS, bottom+1)):
+        for row in range(max(0, top), min(INTENT_COUNT, bottom+1)):
             if char in VALID_INPUTS[row]:
                 for col in range(max(0, left), min(self.length(row), right+1)):
                     self.inputs[row][col] = char
         self.broadcast()
 
     def delete_block(self, top, left, bottom, right):
-        for row in range(max(0, top), min(GRID_ROWS, bottom+1)):
+        for row in range(max(0, top), min(INTENT_COUNT, bottom+1)):
             del self.inputs[row][max(0, left) : right+1]
         self._max_length = max(len(row) for row in self.inputs)
         self.broadcast()
@@ -170,34 +171,34 @@ class Grid(tk.Canvas):
         if new_cell_width > self.cell_width:
             for col in range(self.cell_width, new_cell_width):
                 x = GRID_SIZE * col
-                for row in range(GRID_ROWS):
-                    # Create cell
-                    y = GRID_SIZE * row
-                    rect = self.create_rectangle(x, y, x + GRID_SIZE, y + GRID_SIZE, outline="gray")
-                    text = self.create_text(x + GRID_SIZE // 2, y + GRID_SIZE // 2)
-                    self.grid_objects[row].append((rect, text))
 
                 # Create frame tick
                 if col % 10 == 0:
-                    y = GRID_SIZE * GRID_ROWS
-                    line = self.create_line(x, y, x, y + GRID_SIZE, width=2)
-                    text = self.create_text(x + 5, y + GRID_SIZE // 2, text=str(col), anchor="w")
+                    line = self.create_line(x, 0, x, GRID_SIZE, width=2)
+                    text = self.create_text(x + 5, GRID_SIZE // 2, text=str(col), anchor="w")
                     self.frame_objects.append((line, text))
+
+                # Create cells
+                for row in range(GRID_ROWS):
+                    y = GRID_SIZE * (row + 1)
+                    rect = self.create_rectangle(x, y, x + GRID_SIZE, y + GRID_SIZE, outline="gray")
+                    text = self.create_text(x + GRID_SIZE // 2, y + GRID_SIZE // 2)
+                    self.grid_objects[row].append((rect, text))
         else:
             for col in reversed(range(new_cell_width, self.cell_width)):
-                for row in range(GRID_ROWS):
-                    # Delete off-screen cell
-                    rect, text = self.grid_objects[row][col]
-                    self.delete(rect)
-                    self.delete(text)
-                    del self.grid_objects[row][col]
-
-                # Delete off-screen frame tick
+                # Delete off-screen frame ticks
                 if col % 10 == 0:
                     line, text = self.frame_objects[col // 10]
                     self.delete(line)
                     self.delete(text)
                     del self.frame_objects[col // 10]
+
+                # Delete off-screen cells
+                for row in range(GRID_ROWS):
+                    rect, text = self.grid_objects[row][col]
+                    self.delete(rect)
+                    self.delete(text)
+                    del self.grid_objects[row][col]
 
         self.pixel_width = new_pixel_width
         self.cell_width = new_cell_width
@@ -206,14 +207,14 @@ class Grid(tk.Canvas):
     def on_click(self, event, keep_selection=False):
         self.focus_set()
         col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
-        row = (event.y_root - self.winfo_rooty()) // GRID_SIZE
-        if 0 <= row <= GRID_ROWS and 0 <= col:
+        row = (event.y_root - self.winfo_rooty()) // GRID_SIZE - 2
+        if 0 <= row < INTENT_COUNT and 0 <= col:
             self.cursor.set(row, col + self.current_col, keep_selection)
 
     def on_drag(self, event):
         col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
-        row = (event.y_root - self.winfo_rooty()) // GRID_SIZE
-        if 0 <= row <= GRID_ROWS and 0 <= col:
+        row = (event.y_root - self.winfo_rooty()) // GRID_SIZE - 2
+        if 0 <= row < INTENT_COUNT and 0 <= col:
             self.cursor.set(row, col + self.current_col, True)
 
     def on_right_click(self, event):
@@ -257,9 +258,9 @@ class Grid(tk.Canvas):
 
         frame_ticks = 0
         for col in range(self.cell_width):
-            for row in range(GRID_ROWS):
-                # Draw cell
-                rect, text = self.grid_objects[row][col]
+            # Draw cells
+            for row in range(INTENT_COUNT):
+                rect, text = self.grid_objects[row+1][col]
                 if self.current_col + col < self.inputs.length(row):
                     if self.cursor.is_selected(row, self.current_col + col):
                         fg = "white"
@@ -273,13 +274,16 @@ class Grid(tk.Canvas):
                     self.itemconfig(rect, state="hidden")
                     self.itemconfig(text, state="hidden")
 
+            # Draw frame cell
+            rect, text = self.grid_objects[0][col]
+            self.itemconfig(text, text=str((self.current_col + col) % 10))
+
             # Draw next frame tick
             if (self.current_col + col) % 10 == 0:
                 x = GRID_SIZE * col
-                y = GRID_SIZE * GRID_ROWS
                 line, text = self.frame_objects[frame_ticks]
-                self.coords(line, x, 0, x, y + GRID_SIZE)
-                self.coords(text, x + 5, y + GRID_SIZE // 2)
+                self.coords(line, x, 0, x, (GRID_ROWS + 1) * GRID_SIZE)
+                self.coords(text, x + 5, GRID_SIZE // 2)
                 self.itemconfig(text, text=str(self.current_col + col))
                 self.tag_raise(line)
                 frame_ticks += 1
@@ -307,7 +311,7 @@ class InputsView(tk.Frame):
     def __init__(self, parent, inputs, cursor):
         super().__init__(parent)
 
-        for row, text in enumerate(["X", "Y", "Jump", "Dash", "Fall", "Light", "Heavy", "Frame"]):
+        for row, text in enumerate(["", "Frame", "X", "Y", "Jump", "Dash", "Fall", "Light", "Heavy"]):
             label = tk.Label(self, text=text, padx=5)
             label.grid(row=row, column=0, sticky="e")
 
