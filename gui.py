@@ -3,11 +3,11 @@ import os
 import queue
 import re
 import tkinter as tk
-import functools
 
 import dustforce
 import geom
 import inputs_view
+from dialog import Dialog
 from utils import *
 
 LEVEL_PATTERN = r"START (.*)"
@@ -132,55 +132,23 @@ class LevelView(tk.Canvas):
             self.cursor.set(row, closest)
 
 
-class ReplayDialog(tk.Toplevel):
+class ReplayDialog(Dialog):
     def __init__(self, app):
-        super().__init__(app)
-
+        super().__init__(app, "Replay id:", "Load")
         self.app = app
 
-        label = tk.Label(self, text="Replay id:")
-        entry = tk.Entry(self)
-        button = tk.Button(self, text="Load", command=self.load)
-
-        label.pack(side=tk.LEFT)
-        entry.pack(side=tk.LEFT)
-        button.pack(side=tk.LEFT)
-
-        entry.bind("<Return>", lambda e: self.load())
-        entry.focus_set()
-        self.entry = entry
-
-        self.attributes('-type', 'dialog')
-        self.grab_set()
-
-    def load(self):
-        self.app.load_replay(self.entry.get())
+    def ok(self, text):
+        self.app.load_replay(text)
         self.destroy()
 
 
-class LevelDialog(tk.Toplevel):
+class LevelDialog(Dialog):
     def __init__(self, app):
-        super().__init__(app)
-
+        super().__init__(app, "Level id:", "Load")
         self.app = app
 
-        label = tk.Label(self, text="Level id:")
-        entry = tk.Entry(self)
-        button = tk.Button(self, text="Load", command=self.load)
-
-        label.pack(side=tk.LEFT)
-        entry.pack(side=tk.LEFT)
-        button.pack(side=tk.LEFT)
-
-        entry.bind("<Return>", lambda e: self.load())
-        entry.focus_set()
-        self.entry = entry
-
-        self.attributes('-type', 'dialog')
-        self.grab_set()
-
-    def load(self):
-        self.app.load_level(self.entry.get())
+    def ok(self, text):
+        self.app.load_level(text)
         self.destroy()
 
 
