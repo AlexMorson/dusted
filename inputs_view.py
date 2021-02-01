@@ -57,22 +57,29 @@ class Cursor(Broadcaster):
 
     def read(self):
         return self.inputs.get_block(
-            self.selection_top, self.selection_left,
-            self.selection_bottom + 1, self.selection_right + 1,
+            self.selection_top,
+            self.selection_left,
+            self.selection_bottom + 1,
+            min(len(self.inputs), self.selection_right + 1),
         )
 
     def insert_cols(self, n):
         self.inputs.insert_cols(self.selection_left, n)
 
     def delete_cols(self):
-        self.inputs.delete_cols(self.selection_left, self.selection_right + 1)
-        self.start_col = self.current_col = min(len(self.inputs) - 1, self.selection_left)
+        self.inputs.delete_cols(
+            self.selection_left,
+            min(len(self.inputs), self.selection_right + 1)
+        )
+        self.start_col = self.current_col = self.selection_left
         self._update_selection_vars()
 
     def clear(self):
         self.inputs.clear_block(
-            self.selection_top, self.selection_left,
-            self.selection_bottom + 1, self.selection_right + 1,
+            self.selection_top,
+            self.selection_left,
+            self.selection_bottom + 1,
+            min(len(self.inputs), self.selection_right + 1),
         )
 
     def is_selected(self, row, col):
