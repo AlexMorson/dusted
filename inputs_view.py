@@ -83,7 +83,7 @@ class Cursor(Broadcaster):
 
     def set(self, row, col, keep_selection=False):
         self.current_row = max(0, min(INTENT_COUNT - 1, row))
-        self.current_col = max(0, min(len(self.inputs) - 1, col))
+        self.current_col = max(0, min(len(self.inputs), col))
         if not keep_selection:
             self.start_row = self.current_row
             self.start_col = self.current_col
@@ -91,7 +91,7 @@ class Cursor(Broadcaster):
 
     def move(self, row_offset, col_offset, keep_selection=False):
         self.current_row = max(0, min(INTENT_COUNT - 1, self.current_row + row_offset))
-        self.current_col = max(0, min(len(self.inputs) - 1, self.current_col + col_offset))
+        self.current_col = max(0, min(len(self.inputs), self.current_col + col_offset))
         if not keep_selection:
             self.start_row = self.current_row
             self.start_col = self.current_col
@@ -130,8 +130,12 @@ class Inputs(Broadcaster):
         self.broadcast()
 
     def fill_block(self, top, left, bottom, right, char):
-        """Fill a block of the grid with a single character."""
-        assert 0 <= top <= bottom <= INTENT_COUNT and 0 <= left <= right <= self.length
+        """Fill a block of the grid with a single character, appending columns if needed."""
+        assert 0 <= top <= bottom <= INTENT_COUNT and 0 <= left <= right
+        # Extend the grid if needed
+        if right > self.length:
+            self.insert_cols(self.length, right - self.length)
+        # Fill in the block
         for row in range(max(0, top), min(INTENT_COUNT, bottom)):
             if char in VALID_INPUTS[row]:
                 for col in range(left, right):
@@ -144,7 +148,7 @@ class Inputs(Broadcaster):
         # Extend the grid if needed
         block_right = left + max(len(row) for row in block)
         if block_right > self.length:
-            self.insert(self.length, self.length - block_right)
+            self.insert_cols(self.length, block_right - self.length)
         # Copy over the new block
         for row, line in enumerate(block, start=top):
             for col, char in enumerate(line, start=left):
@@ -372,33 +376,38 @@ class Grid(tk.Canvas):
 
         frame_ticks = 0
         for col in range(self.cell_width):
+            true_col = self.current_col + col
             # Draw cells
             for row in range(INTENT_COUNT):
                 rect, text = self.grid_objects[row+1][col]
-                if self.current_col + col < len(self.inputs):
-                    if self.cursor.is_selected(row, self.current_col + col):
+                if self.current_col + col <= len(self.inputs):
+                    if true_col == len(self.inputs):
+                        value = ""
+                    else:
+                        value = self.inputs.get(row, true_col)
+                    if self.cursor.is_selected(row, true_col):
                         fg = "white"
                         bg = "#24b"
                     else:
                         fg = "black"
                         bg = "white"
                     self.itemconfig(rect, state="normal", fill=bg)
-                    self.itemconfig(text, state="normal", text=self.inputs.get(row, self.current_col + col), fill=fg)
+                    self.itemconfig(text, state="normal", text=value, fill=fg)
                 else:
                     self.itemconfig(rect, state="hidden")
                     self.itemconfig(text, state="hidden")
 
             # Draw frame cell
             rect, text = self.grid_objects[0][col]
-            self.itemconfig(text, text=str((self.current_col + col) % 10))
+            self.itemconfig(text, text=str(true_col % 10))
 
             # Draw next frame tick
-            if (self.current_col + col) % 10 == 0:
+            if true_col % 10 == 0:
                 x = GRID_SIZE * col
                 line, text = self.frame_objects[frame_ticks]
                 self.coords(line, x, 0, x, (GRID_ROWS + 1) * GRID_SIZE)
                 self.coords(text, x + 5, GRID_SIZE // 2)
-                self.itemconfig(text, text=str(self.current_col + col))
+                self.itemconfig(text, text=str(true_col))
                 self.tag_raise(line)
                 frame_ticks += 1
 
