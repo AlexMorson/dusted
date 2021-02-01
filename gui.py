@@ -3,6 +3,7 @@ import os
 import queue
 import re
 import tkinter as tk
+import tkinter.filedialog
 
 import dustforce
 import geom
@@ -183,6 +184,7 @@ class App(tk.Tk):
 
         self.canvas = canvas
         self.character = 0
+        self.file = None
         self.after_idle(self.handle_stdout)
 
     def handle_stdout(self):
@@ -199,22 +201,34 @@ class App(tk.Tk):
         self.canvas.select_frame(frame)
 
     def watch(self):
-        inputs = self.inputs.inputs
-        write_replay_to_file("test.dfreplay", "TAS!", self.canvas.level_id, self.character, inputs)
-        dustforce.watch_replay(os.getcwd() + "/test.dfreplay")
+        self.save()
+        dustforce.watch_replay(self.file)
 
     def load_state_and_watch(self):
+        self.save()
+        dustforce.watch_replay_load_state(self.file)
+
+    def save(self):
+        if self.file is None:
+            self.file = tk.filedialog.asksaveasfilename(
+                defaultextension=".dfreplay",
+                filetypes=[("replay files", "*.dfreplay")],
+                title="Save replay"
+            )
+            if self.file is None:
+                return
         inputs = self.inputs.inputs
-        write_replay_to_file("test.dfreplay", "TAS!", self.canvas.level_id, self.character, inputs)
-        dustforce.watch_replay_load_state(os.getcwd() + "/test.dfreplay")
+        write_replay_to_file(self.file, "TAS!", self.canvas.level_id, self.character, inputs)
 
     def load_replay(self, replay_id):
+        self.file = None
         replay = fetch_replay(replay_id)
         self.inputs.load(replay["inputs"][0])
         self.load_level(replay["header"]["levelname"])
         self.character = replay["header"]["characters"][0]
 
     def load_level(self, level_id):
+        self.file = None
         self.canvas.load_level(level_id)
 
 
