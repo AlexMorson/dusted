@@ -43,7 +43,7 @@ class LevelView(tk.Canvas):
         self.reset()
         self.level_id = level_id
 
-        level = fetch_level(level_id)
+        level = load_level_from_id(level_id)
         tiles = {(x, y) for (l, x, y), t in level.tiles.items() if l == 19}
         outlines = geom.tile_outlines(tiles)
         for outline in outlines:
@@ -138,8 +138,10 @@ class ReplayDialog(Dialog):
         super().__init__(app, "Replay id:", "Load")
         self.app = app
 
-    def ok(self, text):
-        self.app.load_replay(text)
+    def ok(self, replay_id):
+        replay = load_replay_from_id(replay_id)
+        self.app.file = None
+        self.app.load_replay(replay)
         return True
 
 
@@ -160,9 +162,13 @@ class App(tk.Tk):
         # Menu bar
         menubar = tk.Menu(self)
         filemenu = tk.Menu(menubar, tearoff=0)
-        filemenu.add_command(label="Load replay", command=lambda: ReplayDialog(self))
-        filemenu.add_command(label="Load level", command=lambda: LevelDialog(self))
-        menubar.add_cascade(label="Load", underline=0, menu=filemenu)
+        filemenu.add_command(label="Open", command=self.open_file)
+        filemenu.add_command(label="Save", command=self.save_file)
+        menubar.add_cascade(label="File", underline=0, menu=filemenu)
+        loadmenu = tk.Menu(menubar, tearoff=0)
+        loadmenu.add_command(label="Load replay", command=lambda: ReplayDialog(self))
+        loadmenu.add_command(label="Load level", command=lambda: LevelDialog(self))
+        menubar.add_cascade(label="Load", underline=0, menu=loadmenu)
         self.config(menu=menubar)
 
         self.inputs = inputs_view.Inputs(["10243", "10000000000", "10111111111aaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb00000000000000000000000000001111111111", "alsfkjasdflgikjh", "lfshberouibhreoiugsdliggggggggggggggggggggkjjjjjjjjjjjjjjjjjjjjjjjjjeqwwwwwwwwwwwwwwwwwwwwwwwwwwwwh", "wowee", "sdoligkrwjghsipo"])
@@ -201,34 +207,41 @@ class App(tk.Tk):
         self.canvas.select_frame(frame)
 
     def watch(self):
-        self.save()
+        self.save_file()
         dustforce.watch_replay(self.file)
 
     def load_state_and_watch(self):
-        self.save()
+        self.save_file()
         dustforce.watch_replay_load_state(self.file)
 
-    def save(self):
-        if self.file is None:
+    def save_file(self):
+        if not self.file:
             self.file = tk.filedialog.asksaveasfilename(
                 defaultextension=".dfreplay",
                 filetypes=[("replay files", "*.dfreplay")],
                 title="Save replay"
             )
-            if self.file is None:
+            if not self.file:
                 return
         inputs = self.inputs.inputs
         write_replay_to_file(self.file, "TAS!", self.canvas.level_id, self.character, inputs)
 
-    def load_replay(self, replay_id):
-        self.file = None
-        replay = fetch_replay(replay_id)
-        self.inputs.load(replay["inputs"][0])
-        self.load_level(replay["header"]["levelname"])
+    def open_file(self):
+        filepath = tk.filedialog.askopenfilename(
+            defaultextension=".dfreplay",
+            filetypes=[("replay files", "*.dfreplay")],
+            title="Load replay"
+        )
+        replay = load_replay_from_file(filepath)
+        self.file = filepath
+        self.load_replay(replay)
+
+    def load_replay(self, replay):
         self.character = replay["header"]["characters"][0]
+        self.load_level(replay["header"]["levelname"])
+        self.inputs.load(replay["inputs"][0])
 
     def load_level(self, level_id):
-        self.file = None
         self.canvas.load_level(level_id)
 
 

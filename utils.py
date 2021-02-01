@@ -7,17 +7,21 @@ from replay_reader import read_replay
 from replay_writer import write_replay
 
 
-def fetch_replay(replay_id):
+def load_replay_from_id(replay_id):
     data = {"replay": replay_id}
     response = requests.post("http://54.69.194.244/backend8/get_replay.php", data=data)
     replay = read_replay(response.content)
     return replay
 
-def fetch_level(level_id):
+def load_level_from_id(level_id):
     data = {"id": level_id}
     response = requests.post("http://54.69.194.244/backend8/level.php", data=data)
     level = read_map(response.content)
     return level
+
+def load_replay_from_file(filepath):
+    with open(filepath, "rb") as f:
+        return read_replay(f.read())
 
 def write_replay_to_file(filepath, user, level, character, inputs):
     replay = {
