@@ -260,11 +260,15 @@ class Grid(tk.Canvas):
         self.bind("<KeyPress-Right>", lambda e: self.cursor.move( 0,  1))
         self.bind("<KeyPress-Up>"   , lambda e: self.cursor.move(-1,  0))
         self.bind("<KeyPress-Down>" , lambda e: self.cursor.move( 1,  0))
+        self.bind("<KeyPress-Home>" , lambda e: self.cursor.set(self.cursor.position()[0], 0))
+        self.bind("<KeyPress-End>"  , lambda e: self.cursor.set(self.cursor.position()[0], len(self.inputs)-1))
 
         self.bind("<Shift-KeyPress-Left>" , lambda e: self.cursor.move( 0, -1, True))
         self.bind("<Shift-KeyPress-Right>", lambda e: self.cursor.move( 0,  1, True))
         self.bind("<Shift-KeyPress-Up>"   , lambda e: self.cursor.move(-1,  0, True))
         self.bind("<Shift-KeyPress-Down>" , lambda e: self.cursor.move( 1,  0, True))
+        self.bind("<Shift-KeyPress-Home>" , lambda e: self.cursor.set(self.cursor.position()[0], 0, True))
+        self.bind("<Shift-KeyPress-End>"  , lambda e: self.cursor.set(self.cursor.position()[0], len(self.inputs)-1, True))
 
         self.bind("<KeyPress>", self.on_key)
 
