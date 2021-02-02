@@ -1,10 +1,9 @@
 from subprocess import PIPE, Popen
 
 import requests
-
 from dustmaker import read_map
-from replay_reader import read_replay
-from replay_writer import write_replay
+
+from replay import read_replay, write_replay
 
 
 def load_replay_from_id(replay_id):
@@ -23,15 +22,6 @@ def load_replay_from_file(filepath):
     with open(filepath, "rb") as f:
         return read_replay(f.read())
 
-def write_replay_to_file(filepath, user, level, character, inputs):
-    replay = {
-        "username": user,
-        "header": {
-            "players": 1,
-            "characters": [character],
-            "levelname": level
-        },
-        "inputs": [inputs]
-    }
+def write_replay_to_file(filepath, replay):
     with open(filepath, "wb") as f:
         f.write(write_replay(replay))

@@ -2,6 +2,8 @@ import zlib
 
 from dustmaker.BitReader import BitReader
 
+from .replay import Replay
+
 
 def read_expect(reader, data):
     for x in data:
@@ -55,14 +57,9 @@ def read_replay(data):
     inputs.append(read_intents(BitReader(r2.read_bytes(r2.read(4 * 8))), 4, "0")) # Light
     inputs.append(read_intents(BitReader(r2.read_bytes(r2.read(4 * 8))), 4, "0")) # Heavy
 
-    return {
-        "username": username,
-        "header": {
-            "players": players,
-            "characters": characters,
-            "levelname": levelname
-        },
-        "inputs": [
-            inputs
-        ]
-    }
+    return Replay(
+        username,
+        levelname,
+        characters[0],
+        inputs
+    )

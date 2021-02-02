@@ -31,7 +31,7 @@ def write_replay(replay):
 
     intents_writer = BitWriter()
     intents_writer.write(4 * 8, 0)
-    inputs = replay["inputs"][0]
+    inputs = replay.inputs
     write_intents(intents_writer, inputs[0], 2, 1)
     write_intents(intents_writer, inputs[1], 2, 1)
     write_intents(intents_writer, inputs[2], 2, 0)
@@ -45,20 +45,19 @@ def write_replay(replay):
 
     writer.write_bytes(b"DF_RPL2")
 
-    username = replay["username"].encode()
+    username = replay.username.encode()
     writer.write(16, len(username))
     writer.write_bytes(username)
 
     writer.write_bytes(b"DF_RPL1")
 
-    header = replay["header"]
-    writer.write(8, header["players"])
+    writer.write(8, 1) # number of players
     writer.write(8, 0)
     writer.write(4 * 8, len(intents_writer.bytes()))
     writer.write(4 * 8, max(len(i) for i in inputs))
-    for character in header["characters"]:
+    for character in [replay.character]: # this is where the other characters would go
         writer.write(8, character)
-    levelname = header["levelname"].encode()
+    levelname = replay.levelname.encode()
     writer.write(8, len(levelname))
     writer.write_bytes(levelname)
     writer.write_bytes(zlib.compress(intents_writer.bytes()))

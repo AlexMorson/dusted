@@ -189,7 +189,7 @@ class App(tk.Tk):
         inputs.pack(fill=tk.X)
 
         self.canvas = canvas
-        self.character = 0
+        self.replay = None
         self.file = None
         self.after_idle(self.handle_stdout)
 
@@ -223,8 +223,9 @@ class App(tk.Tk):
             )
             if not self.file:
                 return
-        inputs = self.inputs.inputs
-        write_replay_to_file(self.file, "TAS!", self.canvas.level_id, self.character, inputs)
+        self.replay.username = "TAS"
+        self.replay.inputs = self.inputs.inputs
+        write_replay_to_file(self.file, self.replay)
 
     def open_file(self):
         filepath = tk.filedialog.askopenfilename(
@@ -232,14 +233,15 @@ class App(tk.Tk):
             filetypes=[("replay files", "*.dfreplay")],
             title="Load replay"
         )
-        replay = load_replay_from_file(filepath)
-        self.file = filepath
-        self.load_replay(replay)
+        if filepath:
+            replay = load_replay_from_file(filepath)
+            self.file = filepath
+            self.load_replay(replay)
 
     def load_replay(self, replay):
-        self.character = replay["header"]["characters"][0]
-        self.load_level(replay["header"]["levelname"])
-        self.inputs.load(replay["inputs"][0])
+        self.replay = replay
+        self.load_level(replay.levelname)
+        self.inputs.load(replay.inputs)
 
     def load_level(self, level_id):
         self.canvas.load_level(level_id)
