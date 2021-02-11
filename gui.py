@@ -145,7 +145,6 @@ class ReplayDialog(Dialog):
 
     def ok(self, replay_id):
         replay = load_replay_from_id(replay_id)
-        self.app.file = None
         self.app.load_replay(replay)
         return True
 
@@ -246,12 +245,12 @@ class App(tk.Tk):
         self.canvas.select_frame(frame)
 
     def watch(self):
-        self.save_file()
-        dustforce.watch_replay(self.file)
+        if self.save_file():
+            dustforce.watch_replay(self.file)
 
     def load_state_and_watch(self):
-        self.save_file()
-        dustforce.watch_replay_load_state(self.file)
+        if self.save_file():
+            dustforce.watch_replay_load_state(self.file)
 
     def save_file(self):
         if not self.file:
@@ -261,9 +260,10 @@ class App(tk.Tk):
                 title="Save replay"
             )
             if not self.file:
-                return
+                return False
         replay = Replay("TAS", self.level.get(), self.character, self.inputs.get())
         write_replay_to_file(self.file, replay)
+        return True
 
     def new_file(self):
         SettingsDialog(self, self.level, self.inputs)
@@ -276,10 +276,10 @@ class App(tk.Tk):
         )
         if filepath:
             replay = load_replay_from_file(filepath)
-            self.file = filepath
-            self.load_replay(replay)
+            self.load_replay(replay, filepath)
 
-    def load_replay(self, replay):
+    def load_replay(self, replay, filepath=None):
+        self.file = filepath
         self.level.set(replay.levelname)
         self.character = replay.character
         self.inputs.set(replay.inputs)
