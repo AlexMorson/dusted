@@ -2,6 +2,7 @@ import random
 import tkinter as tk
 
 from dialog import Dialog
+from broadcaster import Broadcaster
 
 INTENT_COUNT = 7
 GRID_ROWS = INTENT_COUNT + 1
@@ -17,18 +18,6 @@ VALID_INPUTS = [
     "0123456789ab",
     "0123456789ab"
 ]
-
-
-class Broadcaster:
-    def __init__(self):
-        self.callbacks = []
-
-    def subscribe(self, callback):
-        self.callbacks.append(callback)
-
-    def broadcast(self):
-        for callback in self.callbacks:
-            callback()
 
 
 class Cursor(Broadcaster):
@@ -121,7 +110,7 @@ class Inputs(Broadcaster):
     def __init__(self, inputs=None):
         super().__init__()
         if inputs is not None:
-            self.load(inputs)
+            self.set(inputs)
         else:
             self.reset()
 
@@ -131,9 +120,9 @@ class Inputs(Broadcaster):
 
     def reset(self):
         """Reset to default inputs."""
-        self.load(list(zip(*[DEFAULT_INPUTS for _ in range(55)])))
+        self.set(list(zip(*[DEFAULT_INPUTS for _ in range(55)])))
 
-    def load(self, inputs):
+    def set(self, inputs):
         """Load a (not necessarily rectangular) grid of inputs."""
         self.length = max(len(line) for line in inputs)
         self.inputs = []
@@ -195,12 +184,16 @@ class Inputs(Broadcaster):
                 self.inputs[row][col] = char
         self.broadcast()
 
+    def get(self):
+        """Return all inputs."""
+        return self.inputs
+
     def get_block(self, top, left, bottom, right):
         """Return a block of the grid."""
         assert 0 <= top <= bottom <= INTENT_COUNT and 0 <= left <= right <= self.length
         return [list(self.inputs[row][left:right]) for row in range(top, bottom)]
 
-    def get(self, row, col):
+    def at(self, row, col):
         """Return a single cell of the grid."""
         assert 0 <= row < INTENT_COUNT and 0 <= col < self.length
         return self.inputs[row][col]
@@ -402,7 +395,7 @@ class Grid(tk.Canvas):
                     if true_col == len(self.inputs):
                         value = ""
                     else:
-                        value = self.inputs.get(row, true_col)
+                        value = self.inputs.at(row, true_col)
                     if self.cursor.is_selected(row, true_col):
                         fg = "white"
                         bg = "#24b"

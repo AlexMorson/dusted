@@ -8,6 +8,7 @@ import tkinter.filedialog
 import dustforce
 import geom
 import inputs_view
+import level
 from dialog import Dialog
 from replay import Replay
 from utils import *
@@ -16,10 +17,13 @@ LEVEL_PATTERN = r"START (.*)"
 COORD_PATTERN = r"(\d*) (-?\d*) (-?\d*)"
 CHARACTERS = ["dustman", "dustgirl", "dustworth", "dustkid"]
 
+
 class LevelView(tk.Canvas):
-    def __init__(self, parent, cursor):
+    def __init__(self, parent, level, cursor):
         super().__init__(parent, height=0)
 
+        self.level = level
+        self.level.subscribe(self.on_level_change)
         self.cursor = cursor
         self.cursor.subscribe(self.on_cursor_move)
 
@@ -39,13 +43,13 @@ class LevelView(tk.Canvas):
         self.coords = []
         self.path_objects = []
         self.position_object = None
+        self.delete("all")
 
-    def load_level(self, level_id):
+    def on_level_change(self):
         self.reset()
-        self.level_id = level_id
 
-        level = load_level_from_id(level_id)
-        tiles = {(x, y) for (l, x, y), t in level.tiles.items() if l == 19}
+        level_data = load_level_from_id(self.level.get())
+        tiles = {(x, y) for (l, x, y), t in level_data.tiles.items() if l == 19}
         outlines = geom.tile_outlines(tiles)
         for outline in outlines:
             self.create_polygon(*[(48*x, 48*y) for x, y in outline[0]], fill="#bbb")
@@ -147,19 +151,21 @@ class ReplayDialog(Dialog):
 
 
 class LevelDialog(Dialog):
-    def __init__(self, app):
+    def __init__(self, app, level):
         super().__init__(app, "Level id:", "Load")
-        self.app = app
+        self.level = level
 
     def ok(self, text):
-        self.app.load_level(text)
+        self.level.set(text)
         return True
 
 
 class SettingsDialog(tk.Toplevel):
-    def __init__(self, app, replay=None):
+    def __init__(self, app, level, inputs):
         super().__init__(app)
         self.app = app
+        self.level = level
+        self.inputs = inputs
 
         character_label = tk.Label(self, text="Character:")
         character_label.grid(row=0, column=0)
@@ -172,28 +178,28 @@ class SettingsDialog(tk.Toplevel):
         self.level_entry = tk.Entry(self)
         self.level_entry.grid(row=1, column=1)
 
-        button_text = "Create" if replay is None else "Save"
-        button = tk.Button(self, text=button_text, command=self.ok)
+        button = tk.Button(self, text="Create", command=self.ok)
         button.grid(row=2, columnspan=2)
 
-        if replay is None:
-            self.character_var.set(CHARACTERS[0])
-        else:
-            self.character_var.set(CHARACTERS[replay.character])
-            self.level_entry.insert(0, replay.levelname)
+        self.character_var.set(CHARACTERS[app.character])
 
     def ok(self):
         level_id = self.level_entry.get()
         character = CHARACTERS.index(self.character_var.get())
-        self.app.replay = Replay("TAS", level_id, character, [])
-        self.app.load_level(level_id)
-        self.app.inputs.reset()
+        self.level.set(level_id)
+        self.app.character = character
+        self.inputs.reset()
         self.destroy()
 
 
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
+
+        self.level = level.Level()
+        self.character = 0
+        self.inputs = inputs_view.Inputs()
+        self.cursor = inputs_view.Cursor(self.inputs)
 
         # Menu bar
         menubar = tk.Menu(self)
@@ -204,18 +210,15 @@ class App(tk.Tk):
         menubar.add_cascade(label="File", underline=0, menu=filemenu)
         loadmenu = tk.Menu(menubar, tearoff=0)
         loadmenu.add_command(label="Load replay", command=lambda: ReplayDialog(self))
-        loadmenu.add_command(label="Load level", command=lambda: LevelDialog(self))
+        loadmenu.add_command(label="Load level", command=lambda: LevelDialog(self, self.level))
         menubar.add_cascade(label="Load", underline=0, menu=loadmenu)
         self.config(menu=menubar)
-
-        self.inputs = inputs_view.Inputs()
-        self.cursor = inputs_view.Cursor(self.inputs)
 
         # Widgets
         buttons = tk.Frame(self)
         button1 = tk.Button(buttons, text="Watch", command=self.watch)
         button2 = tk.Button(buttons, text="Load State and Watch", command=self.load_state_and_watch)
-        canvas = LevelView(self, self.cursor)
+        canvas = LevelView(self, self.level, self.cursor)
         inputs = inputs_view.InputsView(self, self.inputs, self.cursor)
 
         # Layout
@@ -226,7 +229,6 @@ class App(tk.Tk):
         inputs.pack(fill=tk.X)
 
         self.canvas = canvas
-        self.replay = None
         self.file = None
         self.after_idle(self.handle_stdout)
 
@@ -260,12 +262,11 @@ class App(tk.Tk):
             )
             if not self.file:
                 return
-        self.replay.username = "TAS"
-        self.replay.inputs = self.inputs.inputs
-        write_replay_to_file(self.file, self.replay)
+        replay = Replay("TAS", self.level.get(), self.character, self.inputs.get())
+        write_replay_to_file(self.file, replay)
 
     def new_file(self):
-        SettingsDialog(self, self.replay)
+        SettingsDialog(self, self.level, self.inputs)
 
     def open_file(self):
         filepath = tk.filedialog.askopenfilename(
@@ -279,12 +280,9 @@ class App(tk.Tk):
             self.load_replay(replay)
 
     def load_replay(self, replay):
-        self.replay = replay
-        self.load_level(replay.levelname)
-        self.inputs.load(replay.inputs)
-
-    def load_level(self, level_id):
-        self.canvas.load_level(level_id)
+        self.level.set(replay.levelname)
+        self.character = replay.character
+        self.inputs.set(replay.inputs)
 
 
 if __name__ == "__main__":
