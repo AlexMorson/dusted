@@ -9,11 +9,12 @@ import dustforce
 import geom
 import inputs_view
 from dialog import Dialog
+from replay import Replay
 from utils import *
 
 LEVEL_PATTERN = r"START (.*)"
 COORD_PATTERN = r"(\d*) (-?\d*) (-?\d*)"
-
+CHARACTERS = ["dustman", "dustgirl", "dustworth", "dustkid"]
 
 class LevelView(tk.Canvas):
     def __init__(self, parent, cursor):
@@ -155,6 +156,42 @@ class LevelDialog(Dialog):
         return True
 
 
+class SettingsDialog(tk.Toplevel):
+    def __init__(self, app, replay=None):
+        super().__init__(app)
+        self.app = app
+
+        character_label = tk.Label(self, text="Character:")
+        character_label.grid(row=0, column=0)
+        self.character_var = tk.StringVar(self)
+        character_choice = tk.OptionMenu(self, self.character_var, *CHARACTERS)
+        character_choice.grid(row=0, column=1)
+
+        level_label = tk.Label(self, text="Level id:")
+        level_label.grid(row=1, column=0)
+        self.level_entry = tk.Entry(self)
+        self.level_entry.grid(row=1, column=1)
+
+        button_text = "Create" if replay is None else "Save"
+        button = tk.Button(self, text=button_text, command=self.ok)
+        button.grid(row=2, columnspan=2)
+
+        if replay is None:
+            self.character_var.set(CHARACTERS[0])
+        else:
+            self.character_var.set(CHARACTERS[replay.character])
+            self.level_entry.insert(0, replay.levelname)
+
+    def ok(self):
+        level_id = self.level_entry.get()
+        character = CHARACTERS.index(self.character_var.get())
+        inputs = [[x]*55 for x in (0, 0, 1, 1, 1, 1, 1)]
+        self.app.replay = Replay("TAS", level_id, character, inputs)
+        self.app.load_level(level_id)
+        self.app.inputs.load(inputs)
+        self.destroy()
+
+
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -162,6 +199,7 @@ class App(tk.Tk):
         # Menu bar
         menubar = tk.Menu(self)
         filemenu = tk.Menu(menubar, tearoff=0)
+        filemenu.add_command(label="New", command=self.new_file)
         filemenu.add_command(label="Open", command=self.open_file)
         filemenu.add_command(label="Save", command=self.save_file)
         menubar.add_cascade(label="File", underline=0, menu=filemenu)
@@ -226,6 +264,9 @@ class App(tk.Tk):
         self.replay.username = "TAS"
         self.replay.inputs = self.inputs.inputs
         write_replay_to_file(self.file, self.replay)
+
+    def new_file(self):
+        SettingsDialog(self, self.replay)
 
     def open_file(self):
         filepath = tk.filedialog.askopenfilename(
