@@ -118,13 +118,20 @@ class Cursor(Broadcaster):
 class Inputs(Broadcaster):
     """Stores a rectangular grid of inputs."""
 
-    def __init__(self, inputs):
+    def __init__(self, inputs=None):
         super().__init__()
-        self.load(inputs)
+        if inputs is not None:
+            self.load(inputs)
+        else:
+            self.reset()
 
     def __len__(self):
         """Return the number of frames that the inputs cover."""
         return self.length
+
+    def reset(self):
+        """Reset to default inputs."""
+        self.load(list(zip(*[DEFAULT_INPUTS for _ in range(55)])))
 
     def load(self, inputs):
         """Load a (not necessarily rectangular) grid of inputs."""

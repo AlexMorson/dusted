@@ -185,10 +185,9 @@ class SettingsDialog(tk.Toplevel):
     def ok(self):
         level_id = self.level_entry.get()
         character = CHARACTERS.index(self.character_var.get())
-        inputs = [[x]*55 for x in (0, 0, 1, 1, 1, 1, 1)]
-        self.app.replay = Replay("TAS", level_id, character, inputs)
+        self.app.replay = Replay("TAS", level_id, character, [])
         self.app.load_level(level_id)
-        self.app.inputs.load(inputs)
+        self.app.inputs.reset()
         self.destroy()
 
 
@@ -209,7 +208,7 @@ class App(tk.Tk):
         menubar.add_cascade(label="Load", underline=0, menu=loadmenu)
         self.config(menu=menubar)
 
-        self.inputs = inputs_view.Inputs(["10243", "10000000000", "10111111111aaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb00000000000000000000000000001111111111", "alsfkjasdflgikjh", "lfshberouibhreoiugsdliggggggggggggggggggggkjjjjjjjjjjjjjjjjjjjjjjjjjeqwwwwwwwwwwwwwwwwwwwwwwwwwwwwh", "wowee", "sdoligkrwjghsipo"])
+        self.inputs = inputs_view.Inputs()
         self.cursor = inputs_view.Cursor(self.inputs)
 
         # Widgets
