@@ -8,7 +8,7 @@ class Dialog(tk.Toplevel):
 
         if platform.system() == "Linux":
             self.attributes('-type', 'dialog')
-        self.resize(False, False)
+        self.resizable(False, False)
         self.grab_set()
 
 
