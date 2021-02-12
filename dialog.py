@@ -2,6 +2,15 @@ import tkinter as tk
 
 
 class Dialog(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.attributes('-type', 'dialog')
+        self.resize(False, False)
+        self.grab_set()
+
+
+class SimpleDialog(Dialog):
     def __init__(self, parent, label_text, button_text):
         super().__init__(parent)
 
@@ -16,9 +25,6 @@ class Dialog(tk.Toplevel):
         entry.bind("<Return>", lambda e: self._ok())
         entry.focus_set()
         self.entry = entry
-
-        self.attributes('-type', 'dialog')
-        self.grab_set()
 
     def _ok(self):
         if self.ok(self.entry.get()):

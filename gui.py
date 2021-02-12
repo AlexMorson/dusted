@@ -6,7 +6,7 @@ import tkinter.filedialog
 import dustforce
 import utils
 from cursor import Cursor
-from dialog import Dialog
+from dialog import Dialog, SimpleDialog
 from inputs import Inputs
 from inputs_view import InputsView
 from level import Level
@@ -18,7 +18,7 @@ COORD_PATTERN = r"(\d*) (-?\d*) (-?\d*)"
 CHARACTERS = ["dustman", "dustgirl", "dustworth", "dustkid"]
 
 
-class LoadReplayDialog(Dialog):
+class LoadReplayDialog(SimpleDialog):
     def __init__(self, app):
         super().__init__(app, "Replay id:", "Load")
         self.app = app
@@ -29,7 +29,7 @@ class LoadReplayDialog(Dialog):
         return True
 
 
-class NewReplayDialog(tk.Toplevel):
+class NewReplayDialog(Dialog):
     def __init__(self, app, level, inputs):
         super().__init__(app)
         self.app = app
@@ -37,15 +37,15 @@ class NewReplayDialog(tk.Toplevel):
         self.inputs = inputs
 
         character_label = tk.Label(self, text="Character:")
-        character_label.grid(row=0, column=0)
+        character_label.grid(row=0, column=0, sticky="e")
         self.character_var = tk.StringVar(self)
         character_choice = tk.OptionMenu(self, self.character_var, *CHARACTERS)
-        character_choice.grid(row=0, column=1)
+        character_choice.grid(row=0, column=1, sticky="ew")
 
         level_label = tk.Label(self, text="Level id:")
-        level_label.grid(row=1, column=0)
+        level_label.grid(row=1, column=0, sticky="e")
         self.level_entry = tk.Entry(self)
-        self.level_entry.grid(row=1, column=1)
+        self.level_entry.grid(row=1, column=1, sticky="ew")
 
         button = tk.Button(self, text="Create", command=self.ok)
         button.grid(row=2, columnspan=2)
@@ -55,6 +55,7 @@ class NewReplayDialog(tk.Toplevel):
     def ok(self):
         level_id = self.level_entry.get()
         character = CHARACTERS.index(self.character_var.get())
+        self.app.file = None
         self.level.set(level_id)
         self.app.character = character
         self.inputs.reset()

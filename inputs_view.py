@@ -1,13 +1,13 @@
 import tkinter as tk
 
-from dialog import Dialog
+from dialog import SimpleDialog
 from inputs import INTENT_COUNT
 
 GRID_ROWS = INTENT_COUNT + 1
 GRID_SIZE = 20
 
 
-class InsertFramesDialog(Dialog):
+class InsertFramesDialog(SimpleDialog):
     def __init__(self, parent, cursor):
         super().__init__(parent, "Number of frames: ", "Insert")
         self.cursor = cursor
