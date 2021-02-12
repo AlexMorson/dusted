@@ -18,7 +18,7 @@ COORD_PATTERN = r"(\d*) (-?\d*) (-?\d*)"
 CHARACTERS = ["dustman", "dustgirl", "dustworth", "dustkid"]
 
 
-class ReplayDialog(Dialog):
+class LoadReplayDialog(Dialog):
     def __init__(self, app):
         super().__init__(app, "Replay id:", "Load")
         self.app = app
@@ -29,17 +29,7 @@ class ReplayDialog(Dialog):
         return True
 
 
-class LevelDialog(Dialog):
-    def __init__(self, app, level):
-        super().__init__(app, "Level id:", "Load")
-        self.level = level
-
-    def ok(self, text):
-        self.level.set(text)
-        return True
-
-
-class SettingsDialog(tk.Toplevel):
+class NewReplayDialog(tk.Toplevel):
     def __init__(self, app, level, inputs):
         super().__init__(app)
         self.app = app
@@ -83,14 +73,15 @@ class App(tk.Tk):
         # Menu bar
         menubar = tk.Menu(self)
         filemenu = tk.Menu(menubar, tearoff=0)
-        filemenu.add_command(label="New", command=self.new_file)
+        newfilemenu = tk.Menu(filemenu, tearoff=0)
+
+        menubar.add_cascade(label="File", underline=0, menu=filemenu)
+        filemenu.add_cascade(label="New", menu=newfilemenu)
+
+        newfilemenu.add_command(label="Empty replay", command=lambda: NewReplayDialog(self, self.level, self.inputs))
+        newfilemenu.add_command(label="From replay id", command=lambda: LoadReplayDialog(self))
         filemenu.add_command(label="Open", command=self.open_file)
         filemenu.add_command(label="Save", command=self.save_file)
-        menubar.add_cascade(label="File", underline=0, menu=filemenu)
-        loadmenu = tk.Menu(menubar, tearoff=0)
-        loadmenu.add_command(label="Load replay", command=lambda: ReplayDialog(self))
-        loadmenu.add_command(label="Load level", command=lambda: LevelDialog(self, self.level))
-        menubar.add_cascade(label="Load", underline=0, menu=loadmenu)
         self.config(menu=menubar)
 
         # Widgets
@@ -141,9 +132,6 @@ class App(tk.Tk):
         replay = Replay("TAS", self.level.get(), self.character, self.inputs.get())
         utils.write_replay_to_file(self.file, replay)
         return True
-
-    def new_file(self):
-        SettingsDialog(self, self.level, self.inputs)
 
     def open_file(self):
         filepath = tk.filedialog.askopenfilename(
