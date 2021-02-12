@@ -5,9 +5,11 @@ import re
 import tkinter as tk
 import tkinter.filedialog
 
+from cursor import Cursor
 import dustforce
 import geom
-import inputs_view
+from inputs import Inputs
+from inputs_view import InputsView
 import level
 from dialog import Dialog
 from replay import Replay
@@ -197,8 +199,8 @@ class App(tk.Tk):
 
         self.level = level.Level()
         self.character = 0
-        self.inputs = inputs_view.Inputs()
-        self.cursor = inputs_view.Cursor(self.inputs)
+        self.inputs = Inputs()
+        self.cursor = Cursor(self.inputs)
 
         # Menu bar
         menubar = tk.Menu(self)
@@ -218,7 +220,7 @@ class App(tk.Tk):
         button1 = tk.Button(buttons, text="Watch", command=self.watch)
         button2 = tk.Button(buttons, text="Load State and Watch", command=self.load_state_and_watch)
         canvas = LevelView(self, self.level, self.cursor)
-        inputs = inputs_view.InputsView(self, self.inputs, self.cursor)
+        inputs = InputsView(self, self.inputs, self.cursor)
 
         # Layout
         button1.pack(side=tk.LEFT)
