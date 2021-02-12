@@ -207,6 +207,18 @@ class Grid(tk.Canvas):
                     if self.cursor.is_selected(row, true_col):
                         fg = "white"
                         bg = "#24b"
+                    elif row == 4 and value == "1" and self.inputs.at(1, true_col) != "2":
+                        # Fastfall without a down input
+                        fg = "black"
+                        bg = "#d22"
+                    elif true_col <= 55:
+                        # Inputs before the player has control
+                        fg = "black"
+                        bg = "#dfd"
+                    elif true_col >= len(self.inputs) - 14:
+                        # Inputs that are not early-exit safe
+                        fg = "black"
+                        bg = "#feb"
                     else:
                         fg = "black"
                         bg = "white"
