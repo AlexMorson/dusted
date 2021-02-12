@@ -56,6 +56,7 @@ class Grid(tk.Canvas):
         self.bind("<ButtonRelease-3>", self.on_right_click)
         self.bind("<Button-4>", lambda e: self.on_scroll(tk.SCROLL, -1, tk.UNITS))
         self.bind("<Button-5>", lambda e: self.on_scroll(tk.SCROLL,  1, tk.UNITS))
+        self.bind("<MouseWheel>", lambda e: self.on_scroll(tk.SCROLL, -e.delta // 120, tk.UNITS))
 
         self.bind("<Control-KeyPress-x>", lambda e: self.cut())
         self.bind("<Control-KeyPress-c>", lambda e: self.copy())

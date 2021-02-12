@@ -1,3 +1,4 @@
+import platform
 import tkinter as tk
 
 
@@ -5,7 +6,8 @@ class Dialog(tk.Toplevel):
     def __init__(self, parent):
         super().__init__(parent)
 
-        self.attributes('-type', 'dialog')
+        if platform.system() == "Linux":
+            self.attributes('-type', 'dialog')
         self.resize(False, False)
         self.grab_set()
 
