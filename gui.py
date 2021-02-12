@@ -1,4 +1,3 @@
-import os
 import queue
 import re
 import tkinter as tk
@@ -17,7 +16,6 @@ from replay import Replay
 LEVEL_PATTERN = r"START (.*)"
 COORD_PATTERN = r"(\d*) (-?\d*) (-?\d*)"
 CHARACTERS = ["dustman", "dustgirl", "dustworth", "dustkid"]
-
 
 
 class ReplayDialog(Dialog):
