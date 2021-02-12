@@ -121,9 +121,6 @@ class App(tk.Tk):
         except queue.Empty:
             self.after(16, self.handle_stdout)
 
-    def select_frame(self, frame):
-        self.canvas.select_frame(frame)
-
     def watch(self):
         if self.save_file():
             dustforce.watch_replay(self.file)
