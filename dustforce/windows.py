@@ -3,6 +3,8 @@ import queue
 import threading
 import time
 
+from config import config
+
 watcher = None
 stdout = queue.Queue()
 
