@@ -89,10 +89,12 @@ class LevelView(tk.Canvas):
         self.select_frame(col)
 
     def on_scroll(self, event):
-        if event.num == 4 or event.delta == 120:
+        if event.num == 4:
             scale = 1.25
-        if event.num == 5 or event.delta == -120:
+        elif event.num == 5:
             scale = 0.8
+        else:
+            scale = pow(1.25, event.delta // 120)
         self.zoom(event.x, event.y, scale)
 
     def on_click(self, event):
