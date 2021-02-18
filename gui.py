@@ -130,7 +130,11 @@ class App(tk.Tk):
             )
             if not self.file:
                 return False
-        replay = Replay("TAS", self.level.get(), self.character, self.inputs.get())
+        replay = Replay()
+        replay.username = "TAS"
+        replay.level = self.level.get()
+        replay.characters = [self.character]
+        replay.inputs = [self.inputs.get()]
         utils.write_replay_to_file(self.file, replay)
         return True
 
@@ -146,9 +150,9 @@ class App(tk.Tk):
 
     def load_replay(self, replay, filepath=None):
         self.file = filepath
-        self.level.set(replay.levelname)
-        self.character = replay.character
-        self.inputs.set(replay.inputs)
+        self.level.set(replay.level)
+        self.character = replay.characters[0]
+        self.inputs.set(replay.inputs[0])
 
 
 if __name__ == "__main__":
