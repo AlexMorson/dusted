@@ -24,7 +24,7 @@ class LoadReplayDialog(SimpleDialog):
         self.app = app
 
     def ok(self, replay_id):
-        replay = utils.load_replay_from_id(replay_id)
+        replay = utils.load_replay_from_dustkid(replay_id)
         self.app.load_replay(replay)
         return True
 

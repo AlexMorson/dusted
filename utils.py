@@ -1,18 +1,33 @@
+import os
 from subprocess import PIPE, Popen
 
 import requests
 from dustmaker import read_map
 
+from config import config
 from replay import read_replay, write_replay
 
 
-def load_replay_from_id(replay_id):
+def load_replay_from_dustkid(replay_id):
     data = {"replay": replay_id}
     response = requests.post("http://54.69.194.244/backend8/get_replay.php", data=data)
     replay = read_replay(response.content)
     return replay
 
-def load_level_from_id(level_id):
+def load_level(level_id):
+    level = load_level_from_file(level_id)
+    if level is None:
+        level = load_level_from_dustkid(level_id)
+    return level
+
+def load_level_from_file(level_id):
+    for path in ("content/levels2", "content/levels3", "user/levels", "user/level_src"):
+        dir_path = os.path.join(config["Default"]["DustforcePath"], path)
+        if level_id in os.listdir(dir_path):
+            with open(os.path.join(dir_path, level_id), "rb") as f:
+                return read_map(f.read())
+
+def load_level_from_dustkid(level_id):
     data = {"id": level_id}
     response = requests.post("http://54.69.194.244/backend8/level.php", data=data)
     level = read_map(response.content)

@@ -3,7 +3,7 @@ import math
 import tkinter as tk
 
 import geom
-from utils import load_level_from_id
+import utils
 
 class LevelView(tk.Canvas):
     def __init__(self, parent, level, cursor):
@@ -35,7 +35,7 @@ class LevelView(tk.Canvas):
     def on_level_change(self):
         self.reset()
 
-        level_data = load_level_from_id(self.level.get())
+        level_data = utils.load_level(self.level.get())
         tiles = {(x, y) for (l, x, y), t in level_data.tiles.items() if l == 19}
         outlines = geom.tile_outlines(tiles)
         for outline in outlines:
