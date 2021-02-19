@@ -23,6 +23,44 @@ class InsertFramesDialog(SimpleDialog):
         return False
 
 
+class GridCell:
+    def __init__(self, canvas, rect, text):
+        self.canvas = canvas
+        self.rect_object = rect
+        self.text_object = text
+
+        self.state = None
+        self.fg = None
+        self.bg = None
+        self.text = None
+
+    def delete(self):
+        self.canvas.delete(self.rect_object)
+        self.canvas.delete(self.text_object)
+
+    def config(self, /, state=None, fg=None, bg=None, text=None):
+        rect_kwargs = {}
+        text_kwargs = {}
+        if state is not None and state != self.state:
+            rect_kwargs["state"] = state
+            text_kwargs["state"] = state
+            self.state = state
+        if fg is not None and fg != self.fg:
+            text_kwargs["fill"] = fg
+            self.fg = fg
+        if bg is not None and bg != self.bg:
+            rect_kwargs["fill"] = bg
+            self.bg = bg
+        if text is not None and text != self.text:
+            text_kwargs["text"] = text
+            self.text = text
+
+        if rect_kwargs:
+            self.canvas.itemconfig(self.rect_object, **rect_kwargs)
+        if text_kwargs:
+            self.canvas.itemconfig(self.text_object, **text_kwargs)
+
+
 class Grid(tk.Canvas):
     def __init__(self, parent, scrollbar, inputs, cursor):
         super().__init__(parent, height=GRID_SIZE*(GRID_ROWS+1), borderwidth=0, highlightthickness=0)
@@ -100,7 +138,7 @@ class Grid(tk.Canvas):
                     y = GRID_SIZE * (row + 1)
                     rect = self.create_rectangle(x, y, x + GRID_SIZE, y + GRID_SIZE, outline="gray")
                     text = self.create_text(x + GRID_SIZE // 2, y + GRID_SIZE // 2)
-                    self.grid_objects[row].append((rect, text))
+                    self.grid_objects[row].append(GridCell(self, rect, text))
         else:
             for col in reversed(range(new_cell_width, self.cell_width)):
                 # Delete off-screen frame ticks
@@ -112,9 +150,7 @@ class Grid(tk.Canvas):
 
                 # Delete off-screen cells
                 for row in range(GRID_ROWS):
-                    rect, text = self.grid_objects[row][col]
-                    self.delete(rect)
-                    self.delete(text)
+                    self.grid_objects[row][col].delete()
                     del self.grid_objects[row][col]
 
         self.pixel_width = new_pixel_width
@@ -199,7 +235,7 @@ class Grid(tk.Canvas):
             true_col = self.current_col + col
             # Draw cells
             for row in range(INTENT_COUNT):
-                rect, text = self.grid_objects[row+1][col]
+                cell = self.grid_objects[row+1][col]
                 if self.current_col + col <= len(self.inputs):
                     if true_col == len(self.inputs):
                         value = ""
@@ -223,15 +259,12 @@ class Grid(tk.Canvas):
                     else:
                         fg = "black"
                         bg = "white"
-                    self.itemconfig(rect, state="normal", fill=bg)
-                    self.itemconfig(text, state="normal", text=value, fill=fg)
+                    cell.config(state="normal", bg=bg, fg=fg, text=value)
                 else:
-                    self.itemconfig(rect, state="hidden")
-                    self.itemconfig(text, state="hidden")
+                    cell.config(state="hidden")
 
             # Draw frame cell
-            rect, text = self.grid_objects[0][col]
-            self.itemconfig(text, text=str(true_col % 10))
+            self.grid_objects[0][col].config(text=str(true_col % 10))
 
             # Draw next frame tick
             if true_col % 10 == 0:
