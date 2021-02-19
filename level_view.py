@@ -43,6 +43,12 @@ class LevelView(tk.Canvas):
             for hole in outline[1:]:
                 self.create_polygon(*[(48*x, 48*y) for x, y in hole], fill="#d9d9d9")
 
+        # Pan to level start
+        x, y = level_data.start_position()
+        width = self.winfo_width()
+        height = self.winfo_height()
+        self.pan(width // 2 - 48 * x, height // 2 - 48 * y)
+
     def select_frame(self, frame):
         if self.position_object is not None: self.delete(self.position_object)
         if 0 <= frame < len(self.coords):
