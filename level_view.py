@@ -20,7 +20,9 @@ class LevelView(tk.Canvas):
         self.bind("<Button-1>", self.on_click)
         self.bind("<B1-Motion>", self.on_drag)
         self.bind("<Button-3>", self.on_right_click)
+        self.bind("<B3-Motion>", self.on_right_click)
         self.bind("<Shift-Button-3>", lambda e: self.on_right_click(e, True))
+        self.bind("<Shift-B3-Motion>", lambda e: self.on_right_click(e, True))
 
         self.reset()
 
