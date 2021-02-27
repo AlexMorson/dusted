@@ -20,6 +20,7 @@ class LevelView(tk.Canvas):
         self.bind("<Button-1>", self.on_click)
         self.bind("<B1-Motion>", self.on_drag)
         self.bind("<Button-3>", self.on_right_click)
+        self.bind("<Shift-Button-3>", lambda e: self.on_right_click(e, True))
 
         self.reset()
 
@@ -116,7 +117,7 @@ class LevelView(tk.Canvas):
         self.prev_mx = event.x
         self.prev_my = event.y
 
-    def on_right_click(self, event):
+    def on_right_click(self, event, keep_selection=False):
         cx = (event.x - self.offset_x) / self.zoom_level
         cy = (event.y - self.offset_y) / self.zoom_level
 
@@ -130,4 +131,4 @@ class LevelView(tk.Canvas):
 
         if closest is not None:
             row, _ = self.cursor.position()
-            self.cursor.set(row, closest)
+            self.cursor.set(row, closest, keep_selection)
