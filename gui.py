@@ -83,6 +83,7 @@ class App(tk.Tk):
         newfilemenu.add_command(label="From replay id", command=lambda: LoadReplayDialog(self))
         filemenu.add_command(label="Open", command=self.open_file)
         filemenu.add_command(label="Save", command=self.save_file)
+        filemenu.add_command(label="Save As", command=lambda: self.save_file(True))
         self.config(menu=menubar)
 
         # Widgets
@@ -121,8 +122,8 @@ class App(tk.Tk):
         if self.save_file():
             dustforce.watch_replay_load_state(self.file)
 
-    def save_file(self):
-        if not self.file:
+    def save_file(self, save_as=False):
+        if not self.file or save_as:
             self.file = tk.filedialog.asksaveasfilename(
                 defaultextension=".dfreplay",
                 filetypes=[("replay files", "*.dfreplay")],
