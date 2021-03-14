@@ -200,7 +200,7 @@ class Grid(tk.Canvas):
 
     def on_key(self, event):
         if event.char:
-            self.cursor.write(event.char)
+            self.cursor.write(event.char.lower())
 
     def on_scroll(self, command, *args):
         if command == tk.MOVETO:
