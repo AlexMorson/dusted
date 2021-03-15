@@ -100,6 +100,10 @@ class App(tk.Tk):
         canvas.pack(fill=tk.BOTH, expand=1)
         inputs.pack(fill=tk.X)
 
+        # Hotkeys
+        self.bind("<F5>", lambda e: self.watch())
+        self.bind("<F6>", lambda e: self.load_state_and_watch())
+
         self.canvas = canvas
         self.file = None
         self.after_idle(self.handle_stdout)
