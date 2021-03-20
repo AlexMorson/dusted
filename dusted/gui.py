@@ -3,15 +3,15 @@ import re
 import tkinter as tk
 import tkinter.filedialog
 
-import dustforce
-import utils
-from cursor import Cursor
-from dialog import Dialog, SimpleDialog
-from inputs import Inputs
-from inputs_view import InputsView
-from level import Level
-from level_view import LevelView
-from replay import Replay
+from . import dustforce
+from . import utils
+from .cursor import Cursor
+from .dialog import Dialog, SimpleDialog
+from .inputs import Inputs
+from .inputs_view import InputsView
+from .level import Level
+from .level_view import LevelView
+from .replay import Replay
 
 LEVEL_PATTERN = r"START (.*)"
 COORD_PATTERN = r"(\d*) (-?\d*) (-?\d*)"
@@ -158,7 +158,3 @@ class App(tk.Tk):
         self.level.set(replay.level)
         self.character = replay.characters[0]
         self.inputs.set(replay.inputs[0])
-
-
-if __name__ == "__main__":
-    App().mainloop()

@@ -2,8 +2,8 @@ import math
 
 import tkinter as tk
 
-import geom
-import utils
+from . import geom
+from . import utils
 
 class LevelView(tk.Canvas):
     def __init__(self, parent, level, cursor):

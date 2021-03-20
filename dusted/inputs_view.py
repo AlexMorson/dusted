@@ -1,7 +1,7 @@
 import tkinter as tk
 
-from dialog import SimpleDialog
-from inputs import INTENT_COUNT
+from .dialog import SimpleDialog
+from .inputs import INTENT_COUNT
 
 GRID_ROWS = INTENT_COUNT + 1
 GRID_SIZE = 20

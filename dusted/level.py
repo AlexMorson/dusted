@@ -1,4 +1,4 @@
-from broadcaster import Broadcaster
+from .broadcaster import Broadcaster
 
 
 class Level(Broadcaster):

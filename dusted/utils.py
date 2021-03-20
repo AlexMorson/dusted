@@ -4,8 +4,8 @@ from subprocess import PIPE, Popen
 import requests
 from dustmaker import read_map
 
-from config import config
-from replay import read_replay, write_replay
+from .config import config
+from .replay import read_replay, write_replay
 
 
 def load_replay_from_dustkid(replay_id):

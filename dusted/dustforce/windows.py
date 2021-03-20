@@ -3,7 +3,7 @@ import queue
 import threading
 import time
 
-from config import config
+from dusted.config import config
 
 watcher = None
 stdout = queue.Queue()
