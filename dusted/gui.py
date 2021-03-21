@@ -1,10 +1,11 @@
+import os
 import queue
 import re
 import tkinter as tk
 import tkinter.filedialog
+import tkinter.messagebox
 
-from . import dustforce
-from . import utils
+from . import config, dustforce, utils
 from .cursor import Cursor
 from .dialog import Dialog, SimpleDialog
 from .inputs import Inputs
@@ -73,17 +74,24 @@ class App(tk.Tk):
 
         # Menu bar
         menubar = tk.Menu(self)
+
         filemenu = tk.Menu(menubar, tearoff=0)
-        newfilemenu = tk.Menu(filemenu, tearoff=0)
-
         menubar.add_cascade(label="File", underline=0, menu=filemenu)
-        filemenu.add_cascade(label="New", menu=newfilemenu)
 
+        newfilemenu = tk.Menu(filemenu, tearoff=0)
+        filemenu.add_cascade(label="New", menu=newfilemenu)
         newfilemenu.add_command(label="Empty replay", command=lambda: NewReplayDialog(self, self.level, self.inputs))
         newfilemenu.add_command(label="From replay id", command=lambda: LoadReplayDialog(self))
+
         filemenu.add_command(label="Open", command=self.open_file)
         filemenu.add_command(label="Save", command=self.save_file)
         filemenu.add_command(label="Save As", command=lambda: self.save_file(True))
+
+        settingsmenu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Settings", underline=0, menu=settingsmenu)
+
+        settingsmenu.add_command(label="Set Dustforce directory", command=self.set_dustforce_directory)
+
         self.config(menu=menubar)
 
         # Widgets
@@ -107,6 +115,10 @@ class App(tk.Tk):
         self.canvas = canvas
         self.file = None
         self.after_idle(self.handle_stdout)
+
+        # Check if the Dustforce directory is valid
+        if not os.path.exists(config.config["Default"]["DustforcePath"]):
+            tk.messagebox.showwarning(message="Could not find the Dustforce directory. Please update it in Settings.")
 
     def handle_stdout(self):
         try:
@@ -158,3 +170,10 @@ class App(tk.Tk):
         self.level.set(replay.level)
         self.character = replay.characters[0]
         self.inputs.set(replay.inputs[0])
+
+    def set_dustforce_directory(self):
+        current_path = config.config["Default"]["DustforcePath"]
+        new_path = tk.filedialog.askdirectory(initialdir=current_path)
+        if new_path:
+            config.config["Default"]["DustforcePath"] = new_path
+        config.write()
