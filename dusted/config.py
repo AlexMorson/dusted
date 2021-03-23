@@ -19,9 +19,7 @@ class Config:
         self.config["DEFAULT"]["dustforce_path"] = new_path
 
     def read(self):
-        if not self.config.read(self.path):
-            print("Write", self.path)
-            self.write()
+        self.config.read(self.path)
 
     def write(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
