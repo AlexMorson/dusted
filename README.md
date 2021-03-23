@@ -4,18 +4,24 @@ An offline editor for Dustforce replays, largely based on dustkid.com's replay c
 
 ## Installation
 
-`pip install dusted`
+```
+pip install dusted
+```
 
-Copy `plugin/tas.as` to `~dustforce/user/script_src`, compile as an in-game plugin, and enable it.
+For extra features, copy `plugin/tas.as` to `~dustforce/user/script_src`, compile as an in-game plugin, and enable it.
 
-On linux, `sudo apt-get install expect` (or equivalent, for the program `unbuffer`).
+On linux, the program `unbuffer` is required, which can be installed with `sudo apt-get install expect` (or equivalent depending on your distribution).
 
 ## Usage
 
 Run the editor with
 
-`python -m dusted`
+```
+python -m dusted
+```
 
 or, if the python scripts directory is on the PATH
 
-`dusted`
+```
+dusted
+```
