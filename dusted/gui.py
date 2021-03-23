@@ -5,7 +5,8 @@ import tkinter as tk
 import tkinter.filedialog
 import tkinter.messagebox
 
-from . import config, dustforce, utils
+from . import dustforce, utils
+from .config import config
 from .cursor import Cursor
 from .dialog import Dialog, SimpleDialog
 from .inputs import Inputs
@@ -117,7 +118,7 @@ class App(tk.Tk):
         self.after_idle(self.handle_stdout)
 
         # Check if the Dustforce directory is valid
-        if not os.path.exists(config.config["Default"]["DustforcePath"]):
+        if not os.path.isdir(config.dustforce_path):
             tk.messagebox.showwarning(message="Could not find the Dustforce directory. Please update it in Settings.")
 
     def handle_stdout(self):
@@ -172,8 +173,8 @@ class App(tk.Tk):
         self.inputs.set(replay.inputs[0])
 
     def set_dustforce_directory(self):
-        current_path = config.config["Default"]["DustforcePath"]
+        current_path = config.dustforce_path
         new_path = tk.filedialog.askdirectory(initialdir=current_path)
         if new_path:
-            config.config["Default"]["DustforcePath"] = new_path
+            config.dustforce_path = new_path
         config.write()

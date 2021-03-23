@@ -38,7 +38,7 @@ class LogfileWatcher:
 def create_proc(uri):
     global watcher
     if watcher is None:
-        path = os.path.join(config["Default"]["DustforcePath"], "output.log")
+        path = os.path.join(config.dustforce_path, "output.log")
         watcher = LogfileWatcher(path)
         logfile_thread = threading.Thread(target=watcher.start, daemon=True)
         logfile_thread.start()

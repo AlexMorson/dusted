@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 from subprocess import PIPE, Popen
 
 import requests
@@ -22,10 +22,12 @@ def load_level(level_id):
 
 def load_level_from_file(level_id):
     for path in ("content/levels2", "content/levels3", "user/levels", "user/level_src"):
-        dir_path = os.path.join(config["Default"]["DustforcePath"], path)
-        if level_id in os.listdir(dir_path):
-            with open(os.path.join(dir_path, level_id), "rb") as f:
+        level_path = Path(config.dustforce_path) / path / level_id
+        try:
+            with level_path.open("rb") as f:
                 return read_map(f.read())
+        except FileNotFoundError:
+            pass
 
 def load_level_from_dustkid(level_id):
     data = {"id": level_id}
