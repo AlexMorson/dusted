@@ -23,6 +23,7 @@ class LogfileWatcher:
                     if self.file is not None:
                         self.file.close()
                     self.file = open(self.path, "r")
+                    self.file.seek(max(0, new_size - 4096))
                 self.size = new_size
 
                 while line := self.file.readline():
