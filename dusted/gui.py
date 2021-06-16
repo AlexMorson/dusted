@@ -79,18 +79,19 @@ class App(tk.Tk):
 
         new_file_menu = tk.Menu(file_menu, tearoff=0)
         file_menu.add_cascade(label="New", menu=new_file_menu)
-        new_file_menu.add_command(label="Empty replay", command=lambda: NewReplayDialog(self))
+        new_file_menu.add_command(label="Empty replay", command=lambda: NewReplayDialog(self), accelerator="Ctrl+N")
         new_file_menu.add_command(label="From replay id", command=lambda: LoadReplayDialog(self))
 
-        file_menu.add_command(label="Open", command=self.open_file)
-        file_menu.add_command(label="Save", command=self.save_file)
-        file_menu.add_command(label="Save As", command=lambda: self.save_file(True))
+        file_menu.add_command(label="Open", command=self.open_file, accelerator="Ctrl+O")
+        file_menu.add_command(label="Save", command=self.save_file, accelerator="Ctrl+S")
+        file_menu.add_command(label="Save As", command=lambda: self.save_file(True), accelerator="Ctrl+Shift+S")
 
         self.edit_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Edit", underline=0, menu=self.edit_menu)
 
-        self.edit_menu.add_command(label="Undo", command=self.undo_stack.undo, state=tk.DISABLED)
-        self.edit_menu.add_command(label="Redo", command=self.undo_stack.redo, state=tk.DISABLED)
+        self.edit_menu.add_command(label="Undo", command=self.undo_stack.undo, state=tk.DISABLED, accelerator="Ctrl+Z")
+        self.edit_menu.add_command(label="Redo", command=self.undo_stack.redo, state=tk.DISABLED,
+                                   accelerator="Ctrl+Shift+Z")
 
         settings_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Settings", underline=0, menu=settings_menu)
