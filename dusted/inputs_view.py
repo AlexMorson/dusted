@@ -227,7 +227,8 @@ class Grid(tk.Canvas):
         self.context_menu.tk_popup(event.x_root, event.y_root)
 
     def on_key(self, event):
-        if not event.char:
+        # Ignore special characters and anything with held modifiers
+        if not event.char or event.state != 0:
             return
 
         if fill := self.cursor.has_selection:
