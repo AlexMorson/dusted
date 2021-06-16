@@ -72,32 +72,32 @@ class App(tk.Tk):
         self.undo_stack.subscribe(self.on_undo_stack_change)
 
         # Menu bar
-        menubar = tk.Menu(self)
+        menu_bar = tk.Menu(self)
 
-        filemenu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="File", underline=0, menu=filemenu)
+        file_menu = tk.Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="File", underline=0, menu=file_menu)
 
-        newfilemenu = tk.Menu(filemenu, tearoff=0)
-        filemenu.add_cascade(label="New", menu=newfilemenu)
-        newfilemenu.add_command(label="Empty replay", command=lambda: NewReplayDialog(self))
-        newfilemenu.add_command(label="From replay id", command=lambda: LoadReplayDialog(self))
+        new_file_menu = tk.Menu(file_menu, tearoff=0)
+        file_menu.add_cascade(label="New", menu=new_file_menu)
+        new_file_menu.add_command(label="Empty replay", command=lambda: NewReplayDialog(self))
+        new_file_menu.add_command(label="From replay id", command=lambda: LoadReplayDialog(self))
 
-        filemenu.add_command(label="Open", command=self.open_file)
-        filemenu.add_command(label="Save", command=self.save_file)
-        filemenu.add_command(label="Save As", command=lambda: self.save_file(True))
+        file_menu.add_command(label="Open", command=self.open_file)
+        file_menu.add_command(label="Save", command=self.save_file)
+        file_menu.add_command(label="Save As", command=lambda: self.save_file(True))
 
-        self.editmenu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Edit", underline=0, menu=self.editmenu)
+        self.edit_menu = tk.Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="Edit", underline=0, menu=self.edit_menu)
 
-        self.editmenu.add_command(label="Undo", command=self.undo_stack.undo, state=tk.DISABLED)
-        self.editmenu.add_command(label="Redo", command=self.undo_stack.redo, state=tk.DISABLED)
+        self.edit_menu.add_command(label="Undo", command=self.undo_stack.undo, state=tk.DISABLED)
+        self.edit_menu.add_command(label="Redo", command=self.undo_stack.redo, state=tk.DISABLED)
 
-        settingsmenu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Settings", underline=0, menu=settingsmenu)
+        settings_menu = tk.Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="Settings", underline=0, menu=settings_menu)
 
-        settingsmenu.add_command(label="Set Dustforce directory", command=self.set_dustforce_directory)
+        settings_menu.add_command(label="Set Dustforce directory", command=self.set_dustforce_directory)
 
-        self.config(menu=menubar)
+        self.config(menu=menu_bar)
 
         # Widgets
         buttons = tk.Frame(self)
@@ -131,7 +131,7 @@ class App(tk.Tk):
                 line = dustforce.stdout.get_nowait()
                 if m := re.match(COORD_PATTERN, line):
                     frame, x, y = map(int, m.group(1, 2, 3))
-                    self.canvas.add_coordinate(frame, x, y-48)
+                    self.canvas.add_coordinate(frame, x, y - 48)
         except queue.Empty:
             self.after(16, self.handle_stdout)
 
@@ -198,5 +198,5 @@ class App(tk.Tk):
         undo_label = "Undo " + self.undo_stack.undo_text()
         redo_label = "Redo " + self.undo_stack.redo_text()
 
-        self.editmenu.entryconfig(0, state=undo_state, label=undo_label)
-        self.editmenu.entryconfig(1, state=redo_state, label=redo_label)
+        self.edit_menu.entryconfig(0, state=undo_state, label=undo_label)
+        self.edit_menu.entryconfig(1, state=redo_state, label=redo_label)

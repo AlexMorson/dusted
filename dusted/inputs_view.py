@@ -66,15 +66,15 @@ class GridCell:
 
 class Grid(tk.Canvas):
     def __init__(self, parent, scrollbar, inputs, cursor, undo_stack):
-        super().__init__(parent, height=GRID_SIZE*(GRID_ROWS+1), borderwidth=0, highlightthickness=0)
+        super().__init__(parent, height=GRID_SIZE * (GRID_ROWS + 1), borderwidth=0, highlightthickness=0)
 
         self.scrollbar = scrollbar
         self.inputs = inputs
         self.cursor = cursor
         self.undo_stack = undo_stack
 
-        self.pixel_width = 0 # view width
-        self.cell_width = 0 # number of cells in view
+        self.pixel_width = 0  # view width
+        self.cell_width = 0  # number of cells in view
         self.grid_objects = [[] for _ in range(GRID_ROWS)]
         self.frame_objects = []
         self.current_col = 0
@@ -87,7 +87,7 @@ class Grid(tk.Canvas):
         self.context_menu.add_command(label="Cut", command=self.cut)
         self.context_menu.add_command(label="Copy", command=self.copy)
         self.context_menu.add_command(label="Paste", command=self.paste)
-        self.context_menu.add_command(label="Insert frames", command=InsertFramesDialog(self))
+        self.context_menu.add_command(label="Insert frames", command=lambda: InsertFramesDialog(self))
         self.context_menu.add_command(label="Delete frames", command=self.delete_frames)
 
         self.bind("<Configure>", lambda e: self.resize())
@@ -97,7 +97,7 @@ class Grid(tk.Canvas):
         self.bind("<B1-Motion>", self.on_drag)
         self.bind("<ButtonRelease-3>", self.on_right_click)
         self.bind("<Button-4>", lambda e: self.on_scroll(tk.SCROLL, -1, tk.UNITS))
-        self.bind("<Button-5>", lambda e: self.on_scroll(tk.SCROLL,  1, tk.UNITS))
+        self.bind("<Button-5>", lambda e: self.on_scroll(tk.SCROLL, 1, tk.UNITS))
         self.bind("<MouseWheel>", lambda e: self.on_scroll(tk.SCROLL, -e.delta // 120, tk.UNITS))
 
         self.bind("<Control-KeyPress-x>", lambda e: self.cut())
@@ -110,23 +110,24 @@ class Grid(tk.Canvas):
         self.bind("<Delete>", lambda e: self.clear_selection())
         self.bind("<BackSpace>", lambda e: self.clear_selection())
 
-        self.bind("<KeyPress-Left>" , lambda e: self.cursor.move( 0, -1))
-        self.bind("<KeyPress-Right>", lambda e: self.cursor.move( 0,  1))
-        self.bind("<KeyPress-Up>"   , lambda e: self.cursor.move(-1,  0))
-        self.bind("<KeyPress-Down>" , lambda e: self.cursor.move( 1,  0))
-        self.bind("<KeyPress-Prior>", lambda e: self.cursor.move( 0, -self.cell_width))
-        self.bind("<KeyPress-Next>" , lambda e: self.cursor.move( 0,  self.cell_width))
+        self.bind("<KeyPress-Left>", lambda e: self.cursor.move(0, -1))
+        self.bind("<KeyPress-Right>", lambda e: self.cursor.move(0, 1))
+        self.bind("<KeyPress-Up>", lambda e: self.cursor.move(-1, 0))
+        self.bind("<KeyPress-Down>", lambda e: self.cursor.move(1, 0))
+        self.bind("<KeyPress-Prior>", lambda e: self.cursor.move(0, -self.cell_width))
+        self.bind("<KeyPress-Next>", lambda e: self.cursor.move(0, self.cell_width))
         self.bind("<KeyPress-Home>", lambda e: self.cursor.set(self.cursor.position[0], 0))
         self.bind("<KeyPress-End>", lambda e: self.cursor.set(self.cursor.position[0], len(self.inputs) - 1))
 
-        self.bind("<Shift-KeyPress-Left>" , lambda e: self.cursor.move( 0, -1, True))
-        self.bind("<Shift-KeyPress-Right>", lambda e: self.cursor.move( 0,  1, True))
-        self.bind("<Shift-KeyPress-Up>"   , lambda e: self.cursor.move(-1,  0, True))
-        self.bind("<Shift-KeyPress-Down>" , lambda e: self.cursor.move( 1,  0, True))
-        self.bind("<Shift-KeyPress-Prior>", lambda e: self.cursor.move( 0, -self.cell_width, True))
-        self.bind("<Shift-KeyPress-Next>" , lambda e: self.cursor.move( 0,  self.cell_width, True))
-        self.bind("<Shift-KeyPress-Home>" , lambda e: self.cursor.set(self.cursor.position[0], 0, True))
-        self.bind("<Shift-KeyPress-End>"  , lambda e: self.cursor.set(self.cursor.position[0], len(self.inputs) - 1, True))
+        self.bind("<Shift-KeyPress-Left>", lambda e: self.cursor.move(0, -1, True))
+        self.bind("<Shift-KeyPress-Right>", lambda e: self.cursor.move(0, 1, True))
+        self.bind("<Shift-KeyPress-Up>", lambda e: self.cursor.move(-1, 0, True))
+        self.bind("<Shift-KeyPress-Down>", lambda e: self.cursor.move(1, 0, True))
+        self.bind("<Shift-KeyPress-Prior>", lambda e: self.cursor.move(0, -self.cell_width, True))
+        self.bind("<Shift-KeyPress-Next>", lambda e: self.cursor.move(0, self.cell_width, True))
+        self.bind("<Shift-KeyPress-Home>", lambda e: self.cursor.set(self.cursor.position[0], 0, True))
+        self.bind("<Shift-KeyPress-End>",
+                  lambda e: self.cursor.set(self.cursor.position[0], len(self.inputs) - 1, True))
 
         self.bind("<KeyPress>", self.on_key)
 
@@ -245,7 +246,7 @@ class Grid(tk.Canvas):
 
     def on_scroll(self, command, *args):
         if command == tk.MOVETO:
-            f = max(0, min(1, float(args[0])))
+            f = max(0.0, min(1.0, float(args[0])))
             col = int(f * len(self.inputs))
             self.current_col = col
         elif command == tk.SCROLL:
@@ -280,12 +281,13 @@ class Grid(tk.Canvas):
             true_col = self.current_col + col
             # Draw cells
             for row in range(INTENT_COUNT):
-                cell = self.grid_objects[row+1][col]
-                if self.current_col + col <= len(self.inputs):
+                cell = self.grid_objects[row + 1][col]
+                if true_col <= len(self.inputs):
                     if true_col == len(self.inputs):
                         value = ""
                     else:
                         value = self.inputs.at(row, true_col)
+
                     if self.cursor.is_selected(row, true_col):
                         fg = "white"
                         bg = "#24b"
@@ -304,6 +306,7 @@ class Grid(tk.Canvas):
                     else:
                         fg = "black"
                         bg = "white"
+
                     cell.config(state="normal", bg=bg, fg=fg, text=value)
                 else:
                     cell.config(state="hidden")
@@ -323,7 +326,7 @@ class Grid(tk.Canvas):
 
         # Hide unused frame ticks
         for frame_tick in range(frame_ticks, len(self.frame_objects)):
-            line, text = self.frame_objects[frame_ticks]
+            line, text = self.frame_objects[frame_tick]
             self.coords(line, -1, -1, -1, -1)
             self.itemconfig(text, text="")
 
@@ -352,8 +355,8 @@ class InputsView(tk.Frame):
         grid = Grid(self, scrollbar, inputs, cursor, undo_stack)
         scrollbar.config(command=grid.on_scroll)
 
-        grid.grid(row=0, rowspan=GRID_ROWS+1, column=1, sticky="ew")
-        scrollbar.grid(row=GRID_ROWS+1, column=1, sticky="ew")
+        grid.grid(row=0, rowspan=GRID_ROWS + 1, column=1, sticky="ew")
+        scrollbar.grid(row=GRID_ROWS + 1, column=1, sticky="ew")
 
         self.grid_columnconfigure(1, weight=1)
 
@@ -382,5 +385,6 @@ if __name__ == "__main__":
             inputs_view = InputsView(frame, inputs, cursor, undo_stack)
             inputs_view.pack(fill=tk.X)
             frame.pack(fill=tk.BOTH)
+
 
     App().mainloop()

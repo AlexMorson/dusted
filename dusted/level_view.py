@@ -5,6 +5,7 @@ import tkinter as tk
 from . import geom
 from . import utils
 
+
 class LevelView(tk.Canvas):
     def __init__(self, parent, level, cursor):
         super().__init__(parent, height=0)
@@ -14,9 +15,9 @@ class LevelView(tk.Canvas):
         self.cursor = cursor
         self.cursor.subscribe(self.on_cursor_move)
 
-        self.bind("<Button-4>", self.on_scroll) # Linux
+        self.bind("<Button-4>", self.on_scroll)  # Linux
         self.bind("<Button-5>", self.on_scroll)
-        self.bind("<MouseWheel>", self.on_scroll) # Windows
+        self.bind("<MouseWheel>", self.on_scroll)  # Windows
         self.bind("<Button-1>", self.on_click)
         self.bind("<B1-Motion>", self.on_drag)
         self.bind("<Button-3>", self.on_right_click)
@@ -42,9 +43,9 @@ class LevelView(tk.Canvas):
         tiles = {(x, y) for (l, x, y), t in level_data.tiles.items() if l == 19}
         outlines = geom.tile_outlines(tiles)
         for outline in outlines:
-            self.create_polygon(*[(48*x, 48*y) for x, y in outline[0]], fill="#bbb")
+            self.create_polygon(*[(48 * x, 48 * y) for x, y in outline[0]], fill="#bbb")
             for hole in outline[1:]:
-                self.create_polygon(*[(48*x, 48*y) for x, y in hole], fill="#d9d9d9")
+                self.create_polygon(*[(48 * x, 48 * y) for x, y in hole], fill="#d9d9d9")
 
         # Pan to level start
         x, y = level_data.start_position()
@@ -56,25 +57,25 @@ class LevelView(tk.Canvas):
         if self.position_object is not None: self.delete(self.position_object)
         if 0 <= frame < len(self.coords):
             x, y = self.coords[frame]
-            self.position_object = self.create_rectangle(x-24, y-48, x+24, y+48)
+            self.position_object = self.create_rectangle(x - 24, y - 48, x + 24, y + 48)
             self.fix_object(self.position_object)
         else:
             self.position_object = None
 
     def add_coordinate(self, frame, x, y):
-        if frame < len(self.coords): # Clear suffix
-            for i in self.path_objects[max(0, frame-1):]:
+        if frame < len(self.coords):  # Clear suffix
+            for i in self.path_objects[max(0, frame - 1):]:
                 self.delete(i)
-            self.path_objects = self.path_objects[:max(0, frame-1)]
+            self.path_objects = self.path_objects[:max(0, frame - 1)]
             self.coords = self.coords[:frame]
-        elif frame > len(self.coords): # Loaded state in the future, pad values
+        elif frame > len(self.coords):  # Loaded state in the future, pad values
             self.path_objects.extend([-1] * (frame - min(1, len(self.coords)) + 1))
             self.coords.extend([(x, y)] * (frame - len(self.coords) + 1))
             return
 
         self.coords.append((x, y))
         if frame > 0:
-            i = self.create_line(*self.coords[frame-1], *self.coords[frame])
+            i = self.create_line(*self.coords[frame - 1], *self.coords[frame])
             self.fix_object(i)
             self.path_objects.append(i)
 
@@ -84,8 +85,8 @@ class LevelView(tk.Canvas):
 
     def zoom(self, x, y, scale):
         self.zoom_level *= scale
-        self.offset_x = (self.offset_x - x) * scale + x;
-        self.offset_y = (self.offset_y - y) * scale + y;
+        self.offset_x = (self.offset_x - x) * scale + x
+        self.offset_y = (self.offset_y - y) * scale + y
         self.scale("all", x, y, scale, scale)
 
     def pan(self, dx, dy):
@@ -125,7 +126,7 @@ class LevelView(tk.Canvas):
         closest = None
         dist = 1e10
         for i, (x, y) in enumerate(self.coords):
-            d = math.hypot(cx-x, cy-y)
+            d = math.hypot(cx - x, cy - y)
             if d < dist:
                 dist = d
                 closest = i
