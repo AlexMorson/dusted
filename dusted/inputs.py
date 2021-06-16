@@ -60,7 +60,8 @@ class Inputs(Broadcaster):
         assert 0 <= top <= bottom <= INTENT_COUNT and 0 <= left <= right
         for row in range(top, bottom + 1):
             for col in range(left, min(right + 1, self.length)):
-                self.inputs[row][col] = char
+                if char in VALID_INPUTS[row]:
+                    self.inputs[row][col] = char
         self.broadcast()
 
     def clear(self, selection):
