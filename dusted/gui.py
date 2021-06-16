@@ -114,6 +114,8 @@ class App(tk.Tk):
         inputs.pack(fill=tk.X)
 
         # Hotkeys
+        self.bind("<Control-KeyPress-s>", lambda e: self.save_file())
+        self.bind("<Control-Shift-KeyPress-S>", lambda e: self.save_file(True))
         self.bind("<F5>", lambda e: self.watch())
         self.bind("<F6>", lambda e: self.load_state_and_watch())
 
@@ -153,9 +155,6 @@ class App(tk.Tk):
             dustforce.watch_replay_load_state(self.file)
 
     def save_file(self, save_as=False):
-        if not self.undo_stack.is_modified:
-            return
-
         if not self.file or save_as:
             self.file = tk.filedialog.asksaveasfilename(
                 defaultextension=".dfreplay",
@@ -164,6 +163,8 @@ class App(tk.Tk):
             )
             if not self.file:
                 return False
+        elif not self.undo_stack.is_modified:
+            return
 
         replay = Replay()
         replay.username = "TAS"
