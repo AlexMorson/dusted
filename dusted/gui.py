@@ -119,11 +119,20 @@ class App(tk.Tk):
 
         self.canvas = canvas
         self.file = None
+        self.update_title()
         self.after_idle(self.handle_stdout)
 
         # Check if the Dustforce directory is valid
         if not os.path.isdir(config.dustforce_path):
             tk.messagebox.showwarning(message="Could not find the Dustforce directory. Please update it in Settings.")
+
+    def update_title(self):
+        title = "Dusted"
+        if self.file is not None:
+            title += f" - {self.file}"
+            if self.undo_stack.is_modified:
+                title += " [*]"
+        self.title(title)
 
     def handle_stdout(self):
         try:
@@ -144,6 +153,9 @@ class App(tk.Tk):
             dustforce.watch_replay_load_state(self.file)
 
     def save_file(self, save_as=False):
+        if not self.undo_stack.is_modified:
+            return
+
         if not self.file or save_as:
             self.file = tk.filedialog.asksaveasfilename(
                 defaultextension=".dfreplay",
@@ -152,12 +164,16 @@ class App(tk.Tk):
             )
             if not self.file:
                 return False
+
         replay = Replay()
         replay.username = "TAS"
         replay.level = self.level.get()
         replay.characters = [self.character]
         replay.inputs = [self.inputs.get()]
+
         utils.write_replay_to_file(self.file, replay)
+        self.undo_stack.set_unmodified()
+
         return True
 
     def new_file(self, level_id, character):
@@ -182,7 +198,10 @@ class App(tk.Tk):
         self.level.set(replay.level)
         self.character = replay.characters[0]
         self.inputs.set(replay.inputs[0])
+
         self.undo_stack.clear()
+        if filepath is not None:
+            self.undo_stack.set_unmodified()
 
     def set_dustforce_directory(self):
         current_path = config.dustforce_path
@@ -200,3 +219,5 @@ class App(tk.Tk):
 
         self.edit_menu.entryconfig(0, state=undo_state, label=undo_label)
         self.edit_menu.entryconfig(1, state=redo_state, label=redo_label)
+
+        self.update_title()
