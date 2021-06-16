@@ -167,7 +167,7 @@ class App(tk.Tk):
             if not self.file:
                 return False
         elif not self.undo_stack.is_modified:
-            return
+            return True
 
         replay = Replay()
         replay.username = "TAS"
