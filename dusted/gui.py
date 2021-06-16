@@ -114,6 +114,8 @@ class App(tk.Tk):
         inputs.pack(fill=tk.X)
 
         # Hotkeys
+        self.bind("<Control-KeyPress-n>", lambda e: NewReplayDialog(self))
+        self.bind("<Control-KeyPress-o>", lambda e: self.open_file())
         self.bind("<Control-KeyPress-s>", lambda e: self.save_file())
         self.bind("<Control-Shift-KeyPress-S>", lambda e: self.save_file(True))
         self.bind("<F5>", lambda e: self.watch())
