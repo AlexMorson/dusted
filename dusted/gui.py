@@ -14,6 +14,7 @@ from .inputs_view import InputsView
 from .level import Level
 from .level_view import LevelView
 from .replay import Replay
+from .undo_stack import UndoStack
 
 LEVEL_PATTERN = r"START (.*)"
 COORD_PATTERN = r"(\d*) (-?\d*) (-?\d*)"
@@ -32,11 +33,9 @@ class LoadReplayDialog(SimpleDialog):
 
 
 class NewReplayDialog(Dialog):
-    def __init__(self, app, level, inputs):
+    def __init__(self, app):
         super().__init__(app)
         self.app = app
-        self.level = level
-        self.inputs = inputs
 
         character_label = tk.Label(self, text="Character:")
         character_label.grid(row=0, column=0, sticky="e")
@@ -57,10 +56,7 @@ class NewReplayDialog(Dialog):
     def ok(self):
         level_id = self.level_entry.get()
         character = CHARACTERS.index(self.character_var.get())
-        self.app.file = None
-        self.level.set(level_id)
-        self.app.character = character
-        self.inputs.reset()
+        self.app.new_file(level_id, character)
         self.destroy()
 
 
@@ -72,6 +68,8 @@ class App(tk.Tk):
         self.character = 0
         self.inputs = Inputs()
         self.cursor = Cursor(self.inputs)
+        self.undo_stack = UndoStack(self.inputs, self.cursor)
+        self.undo_stack.subscribe(self.on_undo_stack_change)
 
         # Menu bar
         menubar = tk.Menu(self)
@@ -81,12 +79,18 @@ class App(tk.Tk):
 
         newfilemenu = tk.Menu(filemenu, tearoff=0)
         filemenu.add_cascade(label="New", menu=newfilemenu)
-        newfilemenu.add_command(label="Empty replay", command=lambda: NewReplayDialog(self, self.level, self.inputs))
+        newfilemenu.add_command(label="Empty replay", command=lambda: NewReplayDialog(self))
         newfilemenu.add_command(label="From replay id", command=lambda: LoadReplayDialog(self))
 
         filemenu.add_command(label="Open", command=self.open_file)
         filemenu.add_command(label="Save", command=self.save_file)
         filemenu.add_command(label="Save As", command=lambda: self.save_file(True))
+
+        self.editmenu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Edit", underline=0, menu=self.editmenu)
+
+        self.editmenu.add_command(label="Undo", command=self.undo_stack.undo, state=tk.DISABLED)
+        self.editmenu.add_command(label="Redo", command=self.undo_stack.redo, state=tk.DISABLED)
 
         settingsmenu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Settings", underline=0, menu=settingsmenu)
@@ -100,7 +104,7 @@ class App(tk.Tk):
         button1 = tk.Button(buttons, text="Watch", command=self.watch)
         button2 = tk.Button(buttons, text="Load State and Watch", command=self.load_state_and_watch)
         canvas = LevelView(self, self.level, self.cursor)
-        inputs = InputsView(self, self.inputs, self.cursor)
+        inputs = InputsView(self, self.inputs, self.cursor, self.undo_stack)
 
         # Layout
         button1.pack(side=tk.LEFT)
@@ -156,6 +160,13 @@ class App(tk.Tk):
         utils.write_replay_to_file(self.file, replay)
         return True
 
+    def new_file(self, level_id, character):
+        self.file = None
+        self.level.set(level_id)
+        self.character = character
+        self.inputs.reset()
+        self.undo_stack.clear()
+
     def open_file(self):
         filepath = tk.filedialog.askopenfilename(
             defaultextension=".dfreplay",
@@ -171,6 +182,7 @@ class App(tk.Tk):
         self.level.set(replay.level)
         self.character = replay.characters[0]
         self.inputs.set(replay.inputs[0])
+        self.undo_stack.clear()
 
     def set_dustforce_directory(self):
         current_path = config.dustforce_path
@@ -178,3 +190,13 @@ class App(tk.Tk):
         if new_path:
             config.dustforce_path = new_path
         config.write()
+
+    def on_undo_stack_change(self):
+        undo_state = tk.NORMAL if self.undo_stack.can_undo else tk.DISABLED
+        redo_state = tk.NORMAL if self.undo_stack.can_redo else tk.DISABLED
+
+        undo_label = "Undo " + self.undo_stack.undo_text()
+        redo_label = "Redo " + self.undo_stack.redo_text()
+
+        self.editmenu.entryconfig(0, state=undo_state, label=undo_label)
+        self.editmenu.entryconfig(1, state=redo_state, label=redo_label)

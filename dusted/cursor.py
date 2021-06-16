@@ -15,44 +15,6 @@ class Cursor(Broadcaster):
         self.selection_top = self.selection_bottom = 0
         self.selection_left = self.selection_right = 0
 
-    def write(self, char):
-        self.inputs.fill_block(
-            self.selection_top, self.selection_left,
-            self.selection_bottom + 1, self.selection_right + 1,
-            char
-        )
-
-    def paste(self, block):
-        if self.selection_top + len(block) <= INTENT_COUNT:
-            self.inputs.set_block(self.selection_top, self.selection_left, block)
-
-    def read(self):
-        return self.inputs.get_block(
-            self.selection_top,
-            self.selection_left,
-            self.selection_bottom + 1,
-            min(len(self.inputs), self.selection_right + 1),
-        )
-
-    def insert_cols(self, n):
-        self.inputs.insert_cols(self.selection_left, n)
-
-    def delete_cols(self):
-        self.inputs.delete_cols(
-            self.selection_left,
-            min(len(self.inputs), self.selection_right + 1)
-        )
-        self.start_col = self.current_col = self.selection_left
-        self._update_selection_vars()
-
-    def clear(self):
-        self.inputs.clear_block(
-            self.selection_top,
-            self.selection_left,
-            self.selection_bottom + 1,
-            min(len(self.inputs), self.selection_right + 1),
-        )
-
     def is_selected(self, row, col):
         return (
             self.selection_top <= row <= self.selection_bottom and
@@ -67,6 +29,10 @@ class Cursor(Broadcaster):
             self.start_col = self.current_col
         self._update_selection_vars()
 
+    def select(self, selection):
+        self.current_row, self.current_col, self.start_row, self.start_col = selection
+        self._update_selection_vars()
+
     def move(self, row_offset, col_offset, keep_selection=False):
         self.current_row = max(0, min(INTENT_COUNT - 1, self.current_row + row_offset))
         self.current_col = max(0, min(len(self.inputs), self.current_col + col_offset))
@@ -75,8 +41,33 @@ class Cursor(Broadcaster):
             self.start_col = self.current_col
         self._update_selection_vars()
 
+    @property
     def position(self):
         return self.current_row, self.current_col
+
+    @property
+    def selection(self):
+        return self.selection_top, self.selection_left, self.selection_bottom, self.selection_right
+
+    @property
+    def selection_start(self):
+        return self.selection_top, self.selection_left
+
+    @property
+    def selection_end(self):
+        return self.selection_bottom, self.selection_right
+
+    @property
+    def selection_width(self):
+        return self.selection_right - self.selection_left + 1
+
+    @property
+    def selection_height(self):
+        return self.selection_bottom - self.selection_top + 1
+
+    @property
+    def has_selection(self):
+        return self.selection_left < self.selection_right or self.selection_top < self.selection_bottom
 
     def _update_selection_vars(self):
         self.selection_top    = min(self.start_row, self.current_row)

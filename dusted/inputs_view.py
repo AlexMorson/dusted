@@ -1,16 +1,19 @@
 import tkinter as tk
 
+from .commands import SetInputsCommand, CommandSequence, InsertFramesCommand, DeleteFramesCommand, FillInputsCommand, \
+    ClearInputsCommand
 from .dialog import SimpleDialog
 from .inputs import INTENT_COUNT
+from .undo_stack import UndoStack
 
 GRID_ROWS = INTENT_COUNT + 1
 GRID_SIZE = 20
 
 
 class InsertFramesDialog(SimpleDialog):
-    def __init__(self, parent, cursor):
-        super().__init__(parent, "Number of frames: ", "Insert")
-        self.cursor = cursor
+    def __init__(self, grid):
+        super().__init__(grid, "Number of frames: ", "Insert")
+        self.grid = grid
 
     def ok(self, text):
         try:
@@ -18,7 +21,7 @@ class InsertFramesDialog(SimpleDialog):
         except ValueError:
             return False
         if n >= 0:
-            self.cursor.insert_cols(n)
+            self.grid.insert_frames(n)
             return True
         return False
 
@@ -62,12 +65,13 @@ class GridCell:
 
 
 class Grid(tk.Canvas):
-    def __init__(self, parent, scrollbar, inputs, cursor):
+    def __init__(self, parent, scrollbar, inputs, cursor, undo_stack):
         super().__init__(parent, height=GRID_SIZE*(GRID_ROWS+1), borderwidth=0, highlightthickness=0)
 
         self.scrollbar = scrollbar
         self.inputs = inputs
         self.cursor = cursor
+        self.undo_stack = undo_stack
 
         self.pixel_width = 0 # view width
         self.cell_width = 0 # number of cells in view
@@ -83,8 +87,8 @@ class Grid(tk.Canvas):
         self.context_menu.add_command(label="Cut", command=self.cut)
         self.context_menu.add_command(label="Copy", command=self.copy)
         self.context_menu.add_command(label="Paste", command=self.paste)
-        self.context_menu.add_command(label="Insert frames", command=self.insert_frames)
-        self.context_menu.add_command(label="Delete frames", command=self.cursor.delete_cols)
+        self.context_menu.add_command(label="Insert frames", command=InsertFramesDialog(self))
+        self.context_menu.add_command(label="Delete frames", command=self.delete_frames)
 
         self.bind("<Configure>", lambda e: self.resize())
 
@@ -100,8 +104,11 @@ class Grid(tk.Canvas):
         self.bind("<Control-KeyPress-c>", lambda e: self.copy())
         self.bind("<Control-KeyPress-v>", lambda e: self.paste())
 
-        self.bind("<Delete>", lambda e: self.cursor.clear())
-        self.bind("<BackSpace>", lambda e: self.cursor.clear())
+        self.bind("<Control-KeyPress-z>", lambda e: self.undo_stack.undo())
+        self.bind("<Control-Shift-KeyPress-Z>", lambda e: self.undo_stack.redo())
+
+        self.bind("<Delete>", lambda e: self.clear_selection())
+        self.bind("<BackSpace>", lambda e: self.clear_selection())
 
         self.bind("<KeyPress-Left>" , lambda e: self.cursor.move( 0, -1))
         self.bind("<KeyPress-Right>", lambda e: self.cursor.move( 0,  1))
@@ -109,8 +116,8 @@ class Grid(tk.Canvas):
         self.bind("<KeyPress-Down>" , lambda e: self.cursor.move( 1,  0))
         self.bind("<KeyPress-Prior>", lambda e: self.cursor.move( 0, -self.cell_width))
         self.bind("<KeyPress-Next>" , lambda e: self.cursor.move( 0,  self.cell_width))
-        self.bind("<KeyPress-Home>" , lambda e: self.cursor.set(self.cursor.position()[0], 0))
-        self.bind("<KeyPress-End>"  , lambda e: self.cursor.set(self.cursor.position()[0], len(self.inputs)-1))
+        self.bind("<KeyPress-Home>", lambda e: self.cursor.set(self.cursor.position[0], 0))
+        self.bind("<KeyPress-End>", lambda e: self.cursor.set(self.cursor.position[0], len(self.inputs) - 1))
 
         self.bind("<Shift-KeyPress-Left>" , lambda e: self.cursor.move( 0, -1, True))
         self.bind("<Shift-KeyPress-Right>", lambda e: self.cursor.move( 0,  1, True))
@@ -118,8 +125,8 @@ class Grid(tk.Canvas):
         self.bind("<Shift-KeyPress-Down>" , lambda e: self.cursor.move( 1,  0, True))
         self.bind("<Shift-KeyPress-Prior>", lambda e: self.cursor.move( 0, -self.cell_width, True))
         self.bind("<Shift-KeyPress-Next>" , lambda e: self.cursor.move( 0,  self.cell_width, True))
-        self.bind("<Shift-KeyPress-Home>" , lambda e: self.cursor.set(self.cursor.position()[0], 0, True))
-        self.bind("<Shift-KeyPress-End>"  , lambda e: self.cursor.set(self.cursor.position()[0], len(self.inputs)-1, True))
+        self.bind("<Shift-KeyPress-Home>" , lambda e: self.cursor.set(self.cursor.position[0], 0, True))
+        self.bind("<Shift-KeyPress-End>"  , lambda e: self.cursor.set(self.cursor.position[0], len(self.inputs) - 1, True))
 
         self.bind("<KeyPress>", self.on_key)
 
@@ -163,10 +170,10 @@ class Grid(tk.Canvas):
 
     def cut(self):
         self.copy()
-        self.cursor.clear()
+        self.clear_selection()
 
     def copy(self):
-        selection = self.cursor.read()
+        selection = self.inputs.read(self.cursor.selection)
         self.clipboard_clear()
         self.clipboard_append("\n".join("".join(row) for row in selection))
 
@@ -176,11 +183,31 @@ class Grid(tk.Canvas):
         except tk.TclError:
             # Clipboard cannot be accessed
             return
-        block = [list(line) for line in inputs.split("\n")]
-        self.cursor.paste(block)
 
-    def insert_frames(self):
-        InsertFramesDialog(self, self.cursor)
+        # Convert the clipboard contents into a block of inputs
+        block = [list(line) for line in inputs.split("\n")]
+
+        # Ensure that the pasted block lies within the grid
+        if self.cursor.selection_top + len(block) > INTENT_COUNT:
+            return
+
+        # Check if the input grid needs to be resized
+        extra_frames = max(0, self.cursor.selection_left + len(block[0]) - self.inputs.length)
+
+        self.undo_stack.execute(CommandSequence(
+            "Paste inputs",
+            InsertFramesCommand(self.inputs.length, extra_frames),
+            SetInputsCommand(self.cursor.selection_start, block)
+        ))
+
+    def clear_selection(self):
+        self.undo_stack.execute(ClearInputsCommand(self.cursor.selection))
+
+    def insert_frames(self, count):
+        self.undo_stack.execute(InsertFramesCommand(self.cursor.selection_left, count))
+
+    def delete_frames(self):
+        self.undo_stack.execute(DeleteFramesCommand(self.cursor.selection_left, self.cursor.selection_width))
 
     def on_click(self, event, keep_selection=False):
         self.focus_set()
@@ -199,8 +226,22 @@ class Grid(tk.Canvas):
         self.context_menu.tk_popup(event.x_root, event.y_root)
 
     def on_key(self, event):
-        if event.char:
-            self.cursor.write(event.char.lower())
+        if not event.char:
+            return
+
+        if fill := self.cursor.has_selection:
+            command = FillInputsCommand(self.cursor.selection, event.char.lower())
+        else:
+            command = SetInputsCommand(self.cursor.position, [[event.char.lower()]])
+
+        if self.cursor.selection_right == len(self.inputs):
+            self.undo_stack.execute(CommandSequence(
+                "Fill selection" if fill else "Set inputs",
+                InsertFramesCommand(self.cursor.current_col, 1),
+                command
+            ))
+        else:
+            self.undo_stack.execute(command)
 
     def on_scroll(self, command, *args):
         if command == tk.MOVETO:
@@ -218,7 +259,7 @@ class Grid(tk.Canvas):
         self.redraw()
 
     def on_cursor_move(self):
-        row, col = self.cursor.position()
+        _, col = self.cursor.position
         if not (self.current_col <= col < self.current_col + self.cell_width - 1):
             # Scroll so that the cursor is in the middle of the view
             self.current_col = max(0, min(len(self.inputs), col - self.cell_width // 2))
@@ -300,7 +341,7 @@ class Grid(tk.Canvas):
 
 
 class InputsView(tk.Frame):
-    def __init__(self, parent, inputs, cursor):
+    def __init__(self, parent, inputs, cursor, undo_stack):
         super().__init__(parent)
 
         for row, text in enumerate(["", "Frame", "X (L/R)", "Y (U/D)", "Jump", "Dash", "Fall", "Light", "Heavy"]):
@@ -308,7 +349,7 @@ class InputsView(tk.Frame):
             label.grid(row=row, column=0, sticky="e")
 
         scrollbar = tk.Scrollbar(self, orient=tk.HORIZONTAL)
-        grid = Grid(self, scrollbar, inputs, cursor)
+        grid = Grid(self, scrollbar, inputs, cursor, undo_stack)
         scrollbar.config(command=grid.on_scroll)
 
         grid.grid(row=0, rowspan=GRID_ROWS+1, column=1, sticky="ew")
@@ -320,8 +361,8 @@ class InputsView(tk.Frame):
 if __name__ == "__main__":
     import random
 
-    from cursor import Cursor
-    from inputs import Inputs
+    from .cursor import Cursor
+    from .inputs import Inputs
 
 
     class App(tk.Tk):
@@ -333,11 +374,12 @@ if __name__ == "__main__":
                 inputs.append("".join(random.choice("0123456789ab") for _ in range(random.randint(800, 1000))))
             inputs = Inputs(inputs)
             cursor = Cursor(inputs)
+            undo_stack = UndoStack(inputs, cursor)
 
             frame = tk.Frame()
             label = tk.Label(frame, text="HI")
             label.pack(fill=tk.BOTH, expand=1)
-            inputs_view = InputsView(frame, inputs, cursor)
+            inputs_view = InputsView(frame, inputs, cursor, undo_stack)
             inputs_view.pack(fill=tk.X)
             frame.pack(fill=tk.BOTH)
 

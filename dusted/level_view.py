@@ -94,8 +94,7 @@ class LevelView(tk.Canvas):
         self.move("all", dx, dy)
 
     def on_cursor_move(self):
-        _, col = self.cursor.position()
-        self.select_frame(col)
+        self.select_frame(self.cursor.current_col)
 
     def on_scroll(self, event):
         if event.num == 4:

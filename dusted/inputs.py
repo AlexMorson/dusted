@@ -19,6 +19,8 @@ class Inputs(Broadcaster):
 
     def __init__(self, inputs=None):
         super().__init__()
+        self.length = 0
+        self.inputs = []
         if inputs is not None:
             self.set(inputs)
         else:
@@ -42,55 +44,32 @@ class Inputs(Broadcaster):
             self.inputs.append(list(line) + [default] * (self.length - line_length))
         self.broadcast()
 
-    def fill_block(self, top, left, bottom, right, char):
-        """Fill a block of the grid with a single character, appending columns if needed."""
-        assert 0 <= top <= bottom <= INTENT_COUNT and 0 <= left <= right
-        # Extend the grid if needed
-        if right > self.length:
-            self.insert_cols(self.length, right - self.length)
-        # Fill in the block
-        for row in range(max(0, top), min(INTENT_COUNT, bottom)):
-            if char in VALID_INPUTS[row]:
-                for col in range(left, right):
-                    self.inputs[row][col] = char
-        self.broadcast()
-
-    def set_block(self, top, left, block):
-        """Paste a block of inputs into the grid, appending columns if needed."""
-        assert 0 <= top and 0 <= left and top + len(block) <= INTENT_COUNT
-        # Extend the grid if needed
-        block_right = left + max(len(row) for row in block)
-        if block_right > self.length:
-            self.insert_cols(self.length, block_right - self.length)
-        # Copy over the new block
+    def write(self, position, block):
+        """Paste a block of inputs into the grid, validating intents."""
+        top, left = position
+        assert top >= 0 and left >= 0 and top + len(block) <= INTENT_COUNT and left + len(block[0]) <= self.length
         for row, line in enumerate(block, start=top):
             for col, char in enumerate(line, start=left):
                 if char in VALID_INPUTS[row]:
                     self.inputs[row][col] = char
         self.broadcast()
 
-    def delete_cols(self, left, right):
-        """Delete some columns of the grid."""
-        assert 0 <= left <= right <= self.length
-        for row in range(0, INTENT_COUNT):
-            del self.inputs[row][left:right]
-        self.length -= right - left
+    def fill(self, selection, char):
+        """Fill a block of the grid with the same input."""
+        top, left, bottom, right = selection
+        assert 0 <= top <= bottom <= INTENT_COUNT and 0 <= left <= right
+        for row in range(top, bottom + 1):
+            for col in range(left, min(right + 1, self.length)):
+                self.inputs[row][col] = char
         self.broadcast()
 
-    def insert_cols(self, col, n):
-        """Insert default-initialised columns into the grid."""
-        assert 0 <= col <= self.length
-        for row in range(0, INTENT_COUNT):
-            self.inputs[row][col:col] = [DEFAULT_INPUTS[row]] * n
-        self.length += n
-        self.broadcast()
-
-    def clear_block(self, top, left, bottom, right):
+    def clear(self, selection):
         """Reset a block of the grid to the default inputs."""
-        assert 0 <= top <= bottom <= INTENT_COUNT and 0 <= left <= right <= self.length
-        for row in range(top, bottom):
+        top, left, bottom, right = selection
+        assert 0 <= top <= bottom < INTENT_COUNT and 0 <= left <= right
+        for row in range(top, bottom + 1):
             char = DEFAULT_INPUTS[row]
-            for col in range(left, right):
+            for col in range(left, min(right + 1, self.length)):
                 self.inputs[row][col] = char
         self.broadcast()
 
@@ -98,12 +77,29 @@ class Inputs(Broadcaster):
         """Return all inputs."""
         return self.inputs
 
-    def get_block(self, top, left, bottom, right):
+    def read(self, selection):
         """Return a block of the grid."""
-        assert 0 <= top <= bottom <= INTENT_COUNT and 0 <= left <= right <= self.length
-        return [list(self.inputs[row][left:right]) for row in range(top, bottom)]
+        top, left, bottom, right = selection
+        assert 0 <= top and bottom < INTENT_COUNT and 0 <= left <= right
+        return [list(self.inputs[row][left:right + 1]) for row in range(top, bottom + 1)]
 
     def at(self, row, col):
         """Return a single cell of the grid."""
         assert 0 <= row < INTENT_COUNT and 0 <= col < self.length
         return self.inputs[row][col]
+
+    def delete_frames(self, start, count):
+        """Delete some frames."""
+        assert 0 <= start and count >= 0
+        for row in range(0, INTENT_COUNT):
+            del self.inputs[row][start:start + count]
+        self.length -= count
+        self.broadcast()
+
+    def insert_frames(self, start, count):
+        """Insert default-initialised frames."""
+        assert 0 <= start <= self.length and count >= 0
+        for row in range(0, INTENT_COUNT):
+            self.inputs[row][start:start] = [DEFAULT_INPUTS[row]] * count
+        self.length += count
+        self.broadcast()
