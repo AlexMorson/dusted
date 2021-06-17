@@ -1,3 +1,4 @@
+import logging
 import os
 import queue
 import re
@@ -19,6 +20,8 @@ from .undo_stack import UndoStack
 LEVEL_PATTERN = r"START (.*)"
 COORD_PATTERN = r"(\d*) (-?\d*) (-?\d*)"
 CHARACTERS = ["dustman", "dustgirl", "dustkid", "dustworth"]
+
+log = logging.getLogger(__name__)
 
 
 class LoadReplayDialog(SimpleDialog):
@@ -63,6 +66,9 @@ class NewReplayDialog(Dialog):
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
+
+        # Log exceptions
+        self.report_callback_exception = lambda *args: log.error("", exc_info=args)
 
         self.level = Level()
         self.character = 0
