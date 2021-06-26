@@ -296,7 +296,7 @@ class Grid(tk.Canvas):
                         # Fastfall without a down input
                         fg = "black"
                         bg = "#d22"
-                    elif true_col <= 55:
+                    elif true_col < 55:
                         # Inputs before the player has control
                         fg = "black"
                         bg = "#dfd"
