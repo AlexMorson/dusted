@@ -5,6 +5,7 @@ from .commands import SetInputsCommand, CommandSequence, InsertFramesCommand, De
 from .dialog import SimpleDialog
 from .inputs import INTENT_COUNT
 from .undo_stack import UndoStack
+from .utils import modifier_held
 
 GRID_ROWS = INTENT_COUNT + 1
 GRID_SIZE = 20
@@ -228,7 +229,7 @@ class Grid(tk.Canvas):
 
     def on_key(self, event):
         # Ignore special characters and anything with held modifiers
-        if not event.char or event.state != 0:
+        if not event.char or modifier_held(event.state):
             return
 
         if fill := self.cursor.has_selection:

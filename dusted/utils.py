@@ -42,3 +42,11 @@ def load_replay_from_file(filepath):
 def write_replay_to_file(filepath, replay):
     with open(filepath, "wb") as f:
         f.write(write_replay(replay))
+
+def modifier_held(key_state):
+    return (
+        (key_state & 0x1 ) != 0 or  # Shift
+        (key_state & 0x4 ) != 0 or  # Ctrl
+        (key_state & 0x8 ) != 0 or  # Alt
+        (key_state & 0x80) != 0     # Right Alt
+    )
