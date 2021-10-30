@@ -2,8 +2,7 @@ import math
 
 import tkinter as tk
 
-from . import geom
-from . import utils
+from dusted import geom, utils
 
 
 class LevelView(tk.Canvas):
@@ -48,13 +47,14 @@ class LevelView(tk.Canvas):
                 self.create_polygon(*[(48 * x, 48 * y) for x, y in hole], fill="#d9d9d9")
 
         # Pan to level start
-        x, y = level_data.start_position()
+        start = level_data.start_position()
         width = self.winfo_width()
         height = self.winfo_height()
-        self.pan(width // 2 - 48 * x, height // 2 - 48 * y)
+        self.pan(width // 2 - start.x, height // 2 - start.y)
 
     def select_frame(self, frame):
-        if self.position_object is not None: self.delete(self.position_object)
+        if self.position_object is not None:
+            self.delete(self.position_object)
         if 0 <= frame < len(self.coords):
             x, y = self.coords[frame]
             self.position_object = self.create_rectangle(x - 24, y - 48, x + 24, y + 48)

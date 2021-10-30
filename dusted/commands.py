@@ -1,4 +1,4 @@
-from .inputs import INTENT_COUNT
+from dusted.inputs import INTENT_COUNT
 
 
 class Command:

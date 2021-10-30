@@ -6,16 +6,17 @@ import tkinter as tk
 import tkinter.filedialog
 import tkinter.messagebox
 
-from . import dustforce, utils
-from .config import config
-from .cursor import Cursor
-from .dialog import Dialog, SimpleDialog
-from .inputs import Inputs
-from .inputs_view import InputsView
-from .level import Level
-from .level_view import LevelView
-from .replay import Replay
-from .undo_stack import UndoStack
+from dustmaker.replay import Replay, PlayerData, Character
+
+from dusted import dustforce, utils
+from dusted.config import config
+from dusted.cursor import Cursor
+from dusted.dialog import Dialog, SimpleDialog
+from dusted.inputs import Inputs
+from dusted.inputs_view import InputsView
+from dusted.level import Level
+from dusted.level_view import LevelView
+from dusted.undo_stack import UndoStack
 
 LEVEL_PATTERN = r"START (.*)"
 COORD_PATTERN = r"(\d*) (-?\d*) (-?\d*)"
@@ -58,7 +59,7 @@ class NewReplayDialog(Dialog):
 
     def ok(self):
         level_id = self.level_entry.get()
-        character = CHARACTERS.index(self.character_var.get())
+        character = Character(CHARACTERS.index(self.character_var.get()))
         self.app.new_file(level_id, character)
         self.destroy()
 
@@ -71,7 +72,7 @@ class App(tk.Tk):
         self.report_callback_exception = lambda *args: log.error("", exc_info=args)
 
         self.level = Level()
-        self.character = 0
+        self.character = Character.DUSTMAN
         self.inputs = Inputs()
         self.cursor = Cursor(self.inputs)
         self.undo_stack = UndoStack(self.inputs, self.cursor)
@@ -163,7 +164,7 @@ class App(tk.Tk):
         if self.save_file():
             dustforce.watch_replay_load_state(self.file)
 
-    def save_file(self, save_as=False):
+    def save_file(self, save_as: bool = False):
         if not self.file or save_as:
             self.file = tk.filedialog.asksaveasfilename(
                 defaultextension=".dfreplay",
@@ -175,18 +176,18 @@ class App(tk.Tk):
         elif not self.undo_stack.is_modified:
             return True
 
-        replay = Replay()
-        replay.username = "TAS"
-        replay.level = self.level.get()
-        replay.characters = [self.character]
-        replay.inputs = [self.inputs.get()]
+        replay = Replay(
+            username=b"TAS",
+            level=self.level.get().encode(),
+            players=[PlayerData(self.character, self.inputs.get_intents())]
+        )
 
         utils.write_replay_to_file(self.file, replay)
         self.undo_stack.set_unmodified()
 
         return True
 
-    def new_file(self, level_id, character):
+    def new_file(self, level_id: str, character: Character):
         self.file = None
         self.level.set(level_id)
         self.character = character
@@ -203,11 +204,11 @@ class App(tk.Tk):
             replay = utils.load_replay_from_file(filepath)
             self.load_replay(replay, filepath)
 
-    def load_replay(self, replay, filepath=None):
+    def load_replay(self, replay: Replay, filepath: str = None):
         self.file = filepath
-        self.level.set(replay.level)
-        self.character = replay.characters[0]
-        self.inputs.set(replay.inputs[0])
+        self.level.set(replay.level.decode())
+        self.character = replay.players[0].character
+        self.inputs.set_intents(replay.players[0].intents)
 
         self.undo_stack.clear()
         if filepath is not None:

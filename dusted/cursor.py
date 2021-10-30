@@ -1,5 +1,5 @@
-from .broadcaster import Broadcaster
-from .inputs import INTENT_COUNT
+from dusted.broadcaster import Broadcaster
+from dusted.inputs import INTENT_COUNT
 
 
 class Cursor(Broadcaster):

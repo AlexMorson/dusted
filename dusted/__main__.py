@@ -3,14 +3,15 @@ from pathlib import Path
 
 import appdirs
 
-from .gui import App
+from dusted.gui import App
 
 
 def main():
     log_file = Path(appdirs.user_log_dir(opinion=False)) / "dusted.log"
+    file_handler = logging.FileHandler(log_file, "w")
+    stream_handler = logging.StreamHandler()
     logging.basicConfig(
-        filename=str(log_file),
-        filemode="w",
+        handlers=[file_handler, stream_handler],
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s"
     )

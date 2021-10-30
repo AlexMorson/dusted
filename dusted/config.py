@@ -26,4 +26,5 @@ class Config:
         with self.path.open("w+") as file:
             self.config.write(file)
 
+
 config = Config()

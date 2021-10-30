@@ -1,4 +1,8 @@
-from .broadcaster import Broadcaster
+from typing import List, Dict
+
+from dustmaker.replay import IntentStream
+
+from dusted.broadcaster import Broadcaster
 
 INTENT_COUNT = 7
 
@@ -10,7 +14,25 @@ VALID_INPUTS = [
     "01",
     "01",
     "0123456789ab",
-    "0123456789ab"
+    "0123456789ab",
+]
+INPUT_TO_TEXT = [
+    lambda x: str(x + 1),
+    lambda x: str(x + 1),
+    lambda x: str(x),
+    lambda x: str(x),
+    lambda x: str(x),
+    lambda x: hex(x)[2:],
+    lambda x: hex(x)[2:],
+]
+TEXT_TO_INPUT = [
+    lambda x: int(x) - 1,
+    lambda x: int(x) - 1,
+    lambda x: int(x),
+    lambda x: int(x),
+    lambda x: int(x),
+    lambda x: int(x, 16),
+    lambda x: int(x, 16),
 ]
 
 
@@ -30,6 +52,18 @@ class Inputs(Broadcaster):
         """Return the number of frames that the inputs cover."""
         return self.length
 
+    def set_intents(self, intents: Dict[IntentStream, List[int]]):
+        inputs = []
+        for intent, input_to_text in enumerate(INPUT_TO_TEXT):
+            inputs.append([input_to_text(x) for x in intents[IntentStream(intent)]])
+        self.set(inputs)
+
+    def get_intents(self) -> Dict[IntentStream, List[int]]:
+        intents = {}
+        for intent, text_to_input in enumerate(TEXT_TO_INPUT):
+            intents[IntentStream(intent)] = [text_to_input(c) for c in self.inputs[intent]]
+        return intents
+
     def reset(self):
         """Reset to default inputs."""
         self.set(list(zip(*[DEFAULT_INPUTS for _ in range(55)])))
@@ -39,9 +73,8 @@ class Inputs(Broadcaster):
         self.length = max(len(line) for line in inputs)
         self.inputs = []
         for line, default in zip(inputs, DEFAULT_INPUTS):
-            line_length = len(line)
             # Pad rows to the same length
-            self.inputs.append(list(line) + [default] * (self.length - line_length))
+            self.inputs.append(list(line) + [default] * (self.length - len(line)))
         self.broadcast()
 
     def write(self, position, block):

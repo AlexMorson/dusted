@@ -1,11 +1,17 @@
 import tkinter as tk
 
-from .commands import SetInputsCommand, CommandSequence, InsertFramesCommand, DeleteFramesCommand, FillInputsCommand, \
-    ClearInputsCommand
-from .dialog import SimpleDialog
-from .inputs import INTENT_COUNT
-from .undo_stack import UndoStack
-from .utils import modifier_held
+from dusted.commands import (
+    CommandSequence,
+    InsertFramesCommand,
+    DeleteFramesCommand,
+    SetInputsCommand,
+    FillInputsCommand,
+    ClearInputsCommand,
+)
+from dusted.dialog import SimpleDialog
+from dusted.inputs import INTENT_COUNT
+from dusted.undo_stack import UndoStack
+from dusted.utils import modifier_held
 
 GRID_ROWS = INTENT_COUNT + 1
 GRID_SIZE = 20
@@ -366,8 +372,8 @@ class InputsView(tk.Frame):
 if __name__ == "__main__":
     import random
 
-    from .cursor import Cursor
-    from .inputs import Inputs
+    from dusted.cursor import Cursor
+    from dusted.inputs import Inputs
 
 
     class App(tk.Tk):

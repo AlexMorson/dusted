@@ -1,4 +1,4 @@
-from .broadcaster import Broadcaster
+from dusted.broadcaster import Broadcaster
 
 
 class UndoStack(Broadcaster):
