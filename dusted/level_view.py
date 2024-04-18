@@ -132,5 +132,5 @@ class LevelView(tk.Canvas):
                 closest = i
 
         if closest is not None:
-            row, _ = self.cursor.position()
+            row, _ = self.cursor.position
             self.cursor.set(row, closest, keep_selection)
