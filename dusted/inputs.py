@@ -4,9 +4,9 @@ from dustmaker.replay import IntentStream
 
 from dusted.broadcaster import Broadcaster
 
-INTENT_COUNT = 7
+INTENT_COUNT = 8
 
-DEFAULT_INPUTS = "1100000"
+DEFAULT_INPUTS = "11000000"
 VALID_INPUTS = [
     "012",
     "012",
@@ -15,6 +15,7 @@ VALID_INPUTS = [
     "01",
     "0123456789ab",
     "0123456789ab",
+    "012",
 ]
 INPUT_TO_TEXT = [
     lambda x: str(x + 1),
@@ -24,6 +25,7 @@ INPUT_TO_TEXT = [
     lambda x: str(x),
     lambda x: hex(x)[2:],
     lambda x: hex(x)[2:],
+    lambda x: str(x),
 ]
 TEXT_TO_INPUT = [
     lambda x: int(x) - 1,
@@ -33,6 +35,7 @@ TEXT_TO_INPUT = [
     lambda x: int(x),
     lambda x: int(x, 16),
     lambda x: int(x, 16),
+    lambda x: int(x),
 ]
 
 

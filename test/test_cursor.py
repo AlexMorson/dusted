@@ -56,7 +56,7 @@ class TestCursor(TestCase):
 
         # Bottom
         self.cursor.set(10, 2)
-        self.assertEqual(self.cursor.selection, (6, 2, 6, 2))
+        self.assertEqual(self.cursor.selection, (7, 2, 7, 2))
 
         # Left
         self.cursor.set(2, -10)

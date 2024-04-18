@@ -355,7 +355,7 @@ class InputsView(tk.Frame):
     def __init__(self, parent, inputs, cursor, undo_stack):
         super().__init__(parent)
 
-        for row, text in enumerate(["", "Frame", "X (L/R)", "Y (U/D)", "Jump", "Dash", "Fall", "Light", "Heavy"]):
+        for row, text in enumerate(["", "Frame", "X (L/R)", "Y (U/D)", "Jump", "Dash", "Fall", "Light", "Heavy", "Taunt"]):
             label = tk.Label(self, text=text, padx=5)
             label.grid(row=row, column=0, sticky="e")
 
