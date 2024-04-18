@@ -215,7 +215,13 @@ class Grid(tk.Canvas):
         self.undo_stack.execute(InsertFramesCommand(self.cursor.selection_left, count))
 
     def delete_frames(self):
-        self.undo_stack.execute(DeleteFramesCommand(self.cursor.selection_left, self.cursor.selection_width))
+        # Protect against deleting the "frame-after-last"
+        width = self.cursor.selection_width
+        if self.cursor.selection_right == len(self.inputs):
+            width -= 1
+        if width == 0:
+            return
+        self.undo_stack.execute(DeleteFramesCommand(self.cursor.selection_left, width))
 
     def on_click(self, event, keep_selection=False):
         self.focus_set()
