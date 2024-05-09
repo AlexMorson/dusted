@@ -11,16 +11,16 @@ from dustmaker.replay import Replay, PlayerData, Character
 from dusted import dustforce, utils
 from dusted.config import config, ConfigOption
 from dusted.cursor import Cursor
-from dusted.dialog import Dialog, SimpleDialog
+from dusted.dialog import SimpleDialog
 from dusted.inputs import Inputs
 from dusted.inputs_view import InputsView
 from dusted.level import Level
 from dusted.level_view import LevelView
+from dusted.replay_metadata import ReplayMetadataDialog, ReplayMetadata
 from dusted.undo_stack import UndoStack
 
 LEVEL_PATTERN = r"START (.*)"
 COORD_PATTERN = r"(\d*) (-?\d*) (-?\d*)"
-CHARACTERS = ["dustman", "dustgirl", "dustkid", "dustworth"]
 
 log = logging.getLogger(__name__)
 
@@ -36,34 +36,6 @@ class LoadReplayDialog(SimpleDialog):
         return True
 
 
-class NewReplayDialog(Dialog):
-    def __init__(self, app):
-        super().__init__(app)
-        self.app = app
-
-        character_label = tk.Label(self, text="Character:")
-        character_label.grid(row=0, column=0, sticky="e")
-        self.character_var = tk.StringVar(self)
-        character_choice = tk.OptionMenu(self, self.character_var, *CHARACTERS)
-        character_choice.grid(row=0, column=1, sticky="ew")
-
-        level_label = tk.Label(self, text="Level id:")
-        level_label.grid(row=1, column=0, sticky="e")
-        self.level_entry = tk.Entry(self)
-        self.level_entry.grid(row=1, column=1, sticky="ew")
-
-        button = tk.Button(self, text="Create", command=self.ok)
-        button.grid(row=2, columnspan=2)
-
-        self.character_var.set(CHARACTERS[app.character])
-
-    def ok(self):
-        level_id = self.level_entry.get()
-        character = Character(CHARACTERS.index(self.character_var.get()))
-        self.app.new_file(level_id, character)
-        self.destroy()
-
-
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -71,7 +43,7 @@ class App(tk.Tk):
         # Log exceptions
         self.report_callback_exception = lambda *args: log.error("", exc_info=args)
 
-        self.level = Level()
+        self.level = Level("downhill")
         self.character = Character.DUSTMAN
         self.inputs = Inputs()
         self.cursor = Cursor(self.inputs)
@@ -86,7 +58,7 @@ class App(tk.Tk):
 
         new_file_menu = tk.Menu(file_menu, tearoff=0)
         file_menu.add_cascade(label="New", menu=new_file_menu)
-        new_file_menu.add_command(label="Empty replay", command=lambda: NewReplayDialog(self), accelerator="Ctrl+N")
+        new_file_menu.add_command(label="Empty replay", command=self.new_file, accelerator="Ctrl+N")
         new_file_menu.add_command(label="From replay id", command=lambda: LoadReplayDialog(self))
 
         file_menu.add_command(label="Open", command=self.open_file, accelerator="Ctrl+O")
@@ -99,6 +71,8 @@ class App(tk.Tk):
         self.edit_menu.add_command(label="Undo", command=self.undo_stack.undo, state=tk.DISABLED, accelerator="Ctrl+Z")
         self.edit_menu.add_command(label="Redo", command=self.undo_stack.redo, state=tk.DISABLED,
                                    accelerator="Ctrl+Shift+Z")
+        self.edit_menu.add_separator()
+        self.edit_menu.add_command(label="Replay metadata...", command=self.edit_replay_metadata)
 
         settings_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Settings", underline=0, menu=settings_menu)
@@ -122,7 +96,7 @@ class App(tk.Tk):
         inputs.pack(fill=tk.X)
 
         # Hotkeys
-        self.bind("<Control-KeyPress-n>", lambda e: NewReplayDialog(self))
+        self.bind("<Control-KeyPress-n>", lambda e: self.new_file())
         self.bind("<Control-KeyPress-o>", lambda e: self.open_file())
         self.bind("<Control-KeyPress-s>", lambda e: self.save_file())
         self.bind("<Control-Shift-KeyPress-S>", lambda e: self.save_file(True))
@@ -187,12 +161,23 @@ class App(tk.Tk):
 
         return True
 
-    def new_file(self, level_id: str, character: Character):
-        self.file = None
-        self.level.set(level_id)
-        self.character = character
-        self.inputs.reset()
-        self.undo_stack.clear()
+    def new_file(self):
+        def callback(metadata: ReplayMetadata):
+            self.file = None
+            self.level.set(metadata.level)
+            self.character = metadata.character
+            self.inputs.reset()
+            self.undo_stack.clear()
+
+        ReplayMetadataDialog(self, callback, creating=True)
+
+    def edit_replay_metadata(self):
+        def callback(metadata: ReplayMetadata):
+            self.level.set(metadata.level)
+            self.character = metadata.character
+
+        metadata = ReplayMetadata(self.character, self.level.get())
+        ReplayMetadataDialog(self, callback, defaults=metadata)
 
     def open_file(self):
         filepath = tk.filedialog.askopenfilename(
