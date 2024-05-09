@@ -58,7 +58,7 @@ class Inputs(Broadcaster):
     def set_intents(self, intents: Dict[IntentStream, List[int]]):
         inputs = []
         for intent, input_to_text in enumerate(INPUT_TO_TEXT):
-            inputs.append([input_to_text(x) for x in intents[IntentStream(intent)]])
+            inputs.append([input_to_text(x) for x in intents.get(IntentStream(intent), [])])
         self.set(inputs)
 
     def get_intents(self) -> Dict[IntentStream, List[int]]:
