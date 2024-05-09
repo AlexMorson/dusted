@@ -58,12 +58,12 @@ class App(tk.Tk):
 
         new_file_menu = tk.Menu(file_menu, tearoff=0)
         file_menu.add_cascade(label="New", menu=new_file_menu)
-        new_file_menu.add_command(label="Empty replay", command=self.new_file, accelerator="Ctrl+N")
-        new_file_menu.add_command(label="From replay id", command=lambda: LoadReplayDialog(self))
+        new_file_menu.add_command(label="Empty replay...", command=self.new_file, accelerator="Ctrl+N")
+        new_file_menu.add_command(label="From replay id...", command=lambda: LoadReplayDialog(self))
 
-        file_menu.add_command(label="Open", command=self.open_file, accelerator="Ctrl+O")
+        file_menu.add_command(label="Open...", command=self.open_file, accelerator="Ctrl+O")
         file_menu.add_command(label="Save", command=self.save_file, accelerator="Ctrl+S")
-        file_menu.add_command(label="Save As", command=lambda: self.save_file(True), accelerator="Ctrl+Shift+S")
+        file_menu.add_command(label="Save As...", command=lambda: self.save_file(True), accelerator="Ctrl+Shift+S")
 
         self.edit_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Edit", underline=0, menu=self.edit_menu)
@@ -77,7 +77,7 @@ class App(tk.Tk):
         settings_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Settings", underline=0, menu=settings_menu)
 
-        settings_menu.add_command(label="Set Dustforce directory", command=self.set_dustforce_directory)
+        settings_menu.add_command(label="Set Dustforce directory...", command=self.set_dustforce_directory)
 
         self.config(menu=menu_bar)
 
