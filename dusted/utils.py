@@ -7,7 +7,7 @@ from dustmaker.dfwriter import DFWriter
 from dustmaker.level import Level
 from dustmaker.replay import Replay
 
-from dusted.config import config
+from dusted.config import config, ConfigOption
 
 
 def load_replay_from_dustkid(replay_id: str) -> Replay:
@@ -28,7 +28,7 @@ def load_level(level_id: str) -> Level:
 
 def load_level_from_file(level_id: str) -> Level:
     for path in ("content/levels2", "content/levels3", "user/levels", "user/level_src"):
-        level_path = Path(config.dustforce_path) / path / level_id
+        level_path = Path(config.get(ConfigOption.DUSTFORCE_PATH)) / path / level_id
         try:
             with level_path.open("rb") as file:
                 return DFReader(file).read_level()

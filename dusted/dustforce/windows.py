@@ -3,7 +3,7 @@ import queue
 import threading
 import time
 
-from dusted.config import config
+from dusted.config import config, ConfigOption
 
 watcher = None
 stdout = queue.Queue()
@@ -39,7 +39,7 @@ class LogfileWatcher:
 def create_proc(uri):
     global watcher
     if watcher is None:
-        path = os.path.join(config.dustforce_path, "output.log")
+        path = os.path.join(config.get(ConfigOption.DUSTFORCE_PATH), "output.log")
         watcher = LogfileWatcher(path)
         logfile_thread = threading.Thread(target=watcher.start, daemon=True)
         logfile_thread.start()
