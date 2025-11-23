@@ -40,6 +40,8 @@ class ReplayMetadataDialog(Dialog):
         self.character_var.set(CHARACTER_NAMES[defaults.character.value])
         self.level_var.set(defaults.level)
 
+        self.bind("<Return>", lambda e: self.ok())
+
     def ok(self):
         character = Character(CHARACTER_NAMES.index(self.character_var.get()))
         level = self.level_var.get()

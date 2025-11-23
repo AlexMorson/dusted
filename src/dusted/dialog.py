@@ -10,6 +10,7 @@ class Dialog(tk.Toplevel):
             self.attributes('-type', 'dialog')
         self.resizable(False, False)
         self.grab_set()
+        self.bind("<Escape>", lambda e: self.destroy())
 
 
 class SimpleDialog(Dialog):
@@ -24,9 +25,9 @@ class SimpleDialog(Dialog):
         entry.pack(side=tk.LEFT)
         button.pack(side=tk.LEFT)
 
-        entry.bind("<Return>", lambda e: self._ok())
         entry.focus_set()
         self.entry = entry
+        self.bind("<Return>", lambda e: self._ok())
 
     def _ok(self):
         if self.ok(self.entry.get()):
