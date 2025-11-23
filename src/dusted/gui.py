@@ -127,7 +127,7 @@ class App(tk.Tk):
 
         # Check if the Dustforce directory is valid
         if not os.path.isdir(config.get(ConfigOption.DUSTFORCE_PATH)):
-            tk.messagebox.showwarning(message="Could not find the Dustforce directory. Please update it in Settings.")
+            tkinter.messagebox.showwarning(message="Could not find the Dustforce directory. Please update it in Settings.")
 
     def update_title(self):
         title = "Dusted"
@@ -197,7 +197,7 @@ class App(tk.Tk):
         ReplayMetadataDialog(self, callback, defaults=metadata)
 
     def open_file(self):
-        filepath = tk.filedialog.askopenfilename(
+        filepath = tkinter.filedialog.askopenfilename(
             defaultextension=".dfreplay",
             filetypes=[("replay files", "*.dfreplay")],
             title="Load replay"
@@ -218,10 +218,10 @@ class App(tk.Tk):
 
     def set_dustforce_directory(self):
         current_path = config.get(ConfigOption.DUSTFORCE_PATH)
-        new_path = tk.filedialog.askdirectory(initialdir=current_path)
+        new_path = tkinter.filedialog.askdirectory(initialdir=current_path)
         if new_path:
             config.set(ConfigOption.DUSTFORCE_PATH, new_path)
-        config.write()
+            config.write()
 
     def on_undo_stack_change(self):
         undo_state = tk.NORMAL if self.undo_stack.can_undo else tk.DISABLED
