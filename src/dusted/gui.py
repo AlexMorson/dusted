@@ -78,6 +78,13 @@ class App(tk.Tk):
         self.edit_menu.add_separator()
         self.edit_menu.add_command(label="Replay metadata...", command=self.edit_replay_metadata)
 
+        view_menu = tk.Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="View", underline=0, menu=view_menu)
+
+        show_level = tk.BooleanVar(self, value=True)
+        view_menu.add_checkbutton(label="Show level", variable=show_level, onvalue=True, offvalue=False)
+        show_level.trace_add("write", lambda *_: self.on_show_level_change(show_level.get()))
+
         settings_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Settings", underline=0, menu=settings_menu)
 
@@ -89,15 +96,22 @@ class App(tk.Tk):
         buttons = tk.Frame(self)
         button1 = tk.Button(buttons, text="Watch", command=self.watch)
         button2 = tk.Button(buttons, text="Load State and Watch", command=self.load_state_and_watch)
-        canvas = LevelView(self, self.level, self.cursor)
-        inputs = InputsView(self, self.inputs, self.cursor, self.undo_stack)
+        self.level_view = LevelView(self, self.level, self.cursor)
+        inputs_view = InputsView(self, self.inputs, self.cursor, self.undo_stack)
 
         # Layout
         button1.pack(side=tk.LEFT)
         button2.pack(side=tk.LEFT)
-        buttons.pack(anchor=tk.W)
-        canvas.pack(fill=tk.BOTH, expand=1)
-        inputs.pack(fill=tk.X)
+
+        buttons.grid(row=0, sticky="W")
+        self.level_view.grid(row=1, sticky="NSEW")
+        inputs_view.grid(row=2, sticky="EW")
+
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
+
+        # Apply config state
+        show_level.set(config.get(ConfigOption.SHOW_LEVEL))
 
         # Hotkeys
         self.bind("<Control-KeyPress-n>", lambda e: self.new_file())
@@ -107,7 +121,6 @@ class App(tk.Tk):
         self.bind("<F5>", lambda e: self.watch())
         self.bind("<F6>", lambda e: self.load_state_and_watch())
 
-        self.canvas = canvas
         self.file = None
         self.update_title()
         self.after_idle(self.handle_stdout)
@@ -221,3 +234,36 @@ class App(tk.Tk):
         self.edit_menu.entryconfig(1, state=redo_state, label=redo_label)
 
         self.update_title()
+
+    def on_show_level_change(self, show):
+        # Process events so that we read up-to-date widget dimensions.
+        self.update_idletasks()
+
+        current_width = self.winfo_width()
+        requested_height = self.winfo_reqheight()
+
+        if show:
+            # Add the level view back into the layout.
+            self.level_view.grid()
+
+            # Enable vertical resizing.
+            self.resizable(True, True)
+
+            # Give the level view some space to fill.
+            self.geometry(f"{current_width}x{requested_height + current_width // 3}")
+        else:
+            # Remove the level view from the layout.
+            self.level_view.grid_remove()
+
+            # Disable vertical resizing.
+            self.resizable(True, False)
+
+            # Resize the window to fit contents.
+            self.geometry(f"{current_width}x{requested_height}")
+
+            # Increase the maximum window size. For some reason, without this
+            # you can't resize the window to be larger than its current size.
+            self.maxsize(100_000, 100_000)
+
+        config.set(ConfigOption.SHOW_LEVEL, show)
+        config.write()
