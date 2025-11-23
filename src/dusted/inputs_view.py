@@ -10,6 +10,7 @@ from dusted.commands import (
 )
 from dusted.dialog import SimpleDialog
 from dusted.inputs import INTENT_COUNT
+from dusted.jump_to_frame import JumpToFrameDialog
 from dusted.undo_stack import UndoStack
 from dusted.utils import modifier_held
 
@@ -135,6 +136,7 @@ class Grid(tk.Canvas):
         self.bind("<Shift-KeyPress-Home>", lambda e: self.cursor.set(self.cursor.position[0], 0, True))
         self.bind("<Shift-KeyPress-End>",
                   lambda e: self.cursor.set(self.cursor.position[0], len(self.inputs) - 1, True))
+        self.bind("<Control-KeyPress-g>", lambda e: JumpToFrameDialog(self, self.cursor))
 
         self.bind("<KeyPress>", self.on_key)
 

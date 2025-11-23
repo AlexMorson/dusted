@@ -14,6 +14,7 @@ from dusted.cursor import Cursor
 from dusted.dialog import SimpleDialog
 from dusted.inputs import Inputs
 from dusted.inputs_view import InputsView
+from dusted.jump_to_frame import JumpToFrameDialog
 from dusted.level import Level
 from dusted.level_view import LevelView
 from dusted.replay_metadata import ReplayMetadataDialog, ReplayMetadata
@@ -71,6 +72,9 @@ class App(tk.Tk):
         self.edit_menu.add_command(label="Undo", command=self.undo_stack.undo, state=tk.DISABLED, accelerator="Ctrl+Z")
         self.edit_menu.add_command(label="Redo", command=self.undo_stack.redo, state=tk.DISABLED,
                                    accelerator="Ctrl+Shift+Z")
+        self.edit_menu.add_separator()
+        self.edit_menu.add_command(label="Jump to frame...", command=lambda: JumpToFrameDialog(self, self.cursor),
+                                   accelerator="Ctrl+G")
         self.edit_menu.add_separator()
         self.edit_menu.add_command(label="Replay metadata...", command=self.edit_replay_metadata)
 
