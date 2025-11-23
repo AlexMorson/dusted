@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.urls]
-source = "https://github.com/alexmorson/dusted"
+Source = "https://github.com/alexmorson/dusted"
 
 [project.gui-scripts]
 dusted = "dusted.__main__:main"
