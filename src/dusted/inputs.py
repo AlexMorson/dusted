@@ -1,5 +1,3 @@
-from typing import List, Dict
-
 from dustmaker.replay import IntentStream
 
 from dusted.broadcaster import Broadcaster
@@ -55,13 +53,13 @@ class Inputs(Broadcaster):
         """Return the number of frames that the inputs cover."""
         return self.length
 
-    def set_intents(self, intents: Dict[IntentStream, List[int]]):
+    def set_intents(self, intents: dict[IntentStream, list[int]]):
         inputs = []
         for intent, input_to_text in enumerate(INPUT_TO_TEXT):
             inputs.append([input_to_text(x) for x in intents.get(IntentStream(intent), [])])
         self.set(inputs)
 
-    def get_intents(self) -> Dict[IntentStream, List[int]]:
+    def get_intents(self) -> dict[IntentStream, list[int]]:
         intents = {}
         for intent, text_to_input in enumerate(TEXT_TO_INPUT):
             intents[IntentStream(intent)] = [text_to_input(c) for c in self.inputs[intent]]
