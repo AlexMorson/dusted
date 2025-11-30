@@ -143,7 +143,7 @@ class App(tk.Tk):
                 line = dustforce.stdout.get_nowait()
                 if m := re.match(COORD_PATTERN, line):
                     frame, x, y = map(int, m.group(1, 2, 3))
-                    self.canvas.add_coordinate(frame, x, y - 48)
+                    self.level_view.add_coordinate(frame, x, y - 48)
         except queue.Empty:
             self.after(16, self.handle_stdout)
 
