@@ -157,7 +157,7 @@ class App(tk.Tk):
 
     def save_file(self, save_as: bool = False):
         if not self.file or save_as:
-            self.file = tk.filedialog.asksaveasfilename(
+            self.file = tkinter.filedialog.asksaveasfilename(
                 defaultextension=".dfreplay",
                 filetypes=[("replay files", "*.dfreplay")],
                 title="Save replay"
