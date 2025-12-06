@@ -1,6 +1,6 @@
 [project]
 name = "dusted"
-version = "1.4.0"
+version = "1.4.1"
 description = "Dustforce replay editor"
 authors = [ { name = "Alex Morson", email = "alexmorson@btinternet.com" } ]
 readme = "README.md"
