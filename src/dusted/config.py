@@ -3,7 +3,7 @@ from enum import Enum
 from pathlib import Path
 from typing import NamedTuple
 
-import appdirs
+import platformdirs
 
 
 class _ConfigOption(NamedTuple):
@@ -26,7 +26,7 @@ class ConfigOption(Enum):
 
 class Config:
     def __init__(self):
-        self.path = Path(appdirs.user_config_dir("dusted")) / "config.ini"
+        self.path = Path(platformdirs.user_config_dir("dusted")) / "config.ini"
         self.config = configparser.ConfigParser(ConfigOption.defaults())
         self.read()
 

@@ -1,13 +1,13 @@
 import logging
 from pathlib import Path
 
-import appdirs
+import platformdirs
 
 from dusted.gui import App
 
 
 def main():
-    log_file = Path(appdirs.user_log_dir(opinion=False)) / "dusted.log"
+    log_file = Path(platformdirs.user_log_dir(opinion=False)) / "dusted.log"
     file_handler = logging.FileHandler(log_file, "w")
     stream_handler = logging.StreamHandler()
     logging.basicConfig(
