@@ -1,5 +1,4 @@
 import math
-
 import tkinter as tk
 
 from dusted import geom, utils
@@ -39,7 +38,7 @@ class LevelView(tk.Canvas):
         self.reset()
 
         level_data = utils.load_level(self.level.get())
-        tiles = {(x, y) for (l, x, y), t in level_data.tiles.items() if l == 19}
+        tiles = {(x, y) for layer, x, y in level_data.tiles if layer == 19}
         outlines = geom.tile_outlines(tiles)
         for outline in outlines:
             self.create_polygon(*[(48 * x, 48 * y) for x, y in outline[0]], fill="#bbb")

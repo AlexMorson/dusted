@@ -1,2 +1,3 @@
 from dusted.geom.tiles import tile_outlines
-from dusted.geom.lines import decimate_line
+
+__all__ = ["tile_outlines"]
