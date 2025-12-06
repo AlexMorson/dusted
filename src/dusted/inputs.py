@@ -56,13 +56,17 @@ class Inputs(Broadcaster):
     def set_intents(self, intents: dict[IntentStream, list[int]]):
         inputs = []
         for intent, input_to_text in enumerate(INPUT_TO_TEXT):
-            inputs.append([input_to_text(x) for x in intents.get(IntentStream(intent), [])])
+            inputs.append(
+                [input_to_text(x) for x in intents.get(IntentStream(intent), [])]
+            )
         self.set(inputs)
 
     def get_intents(self) -> dict[IntentStream, list[int]]:
         intents = {}
         for intent, text_to_input in enumerate(TEXT_TO_INPUT):
-            intents[IntentStream(intent)] = [text_to_input(c) for c in self.inputs[intent]]
+            intents[IntentStream(intent)] = [
+                text_to_input(c) for c in self.inputs[intent]
+            ]
         return intents
 
     def reset(self):
@@ -81,7 +85,12 @@ class Inputs(Broadcaster):
     def write(self, position, block):
         """Paste a block of inputs into the grid, validating intents."""
         top, left = position
-        assert top >= 0 and left >= 0 and top + len(block) <= INTENT_COUNT and left + len(block[0]) <= self.length
+        assert (
+            top >= 0
+            and left >= 0
+            and top + len(block) <= INTENT_COUNT
+            and left + len(block[0]) <= self.length
+        )
         for row, line in enumerate(block, start=top):
             for col, char in enumerate(line, start=left):
                 if char in VALID_INPUTS[row]:
@@ -116,7 +125,9 @@ class Inputs(Broadcaster):
         """Return a block of the grid."""
         top, left, bottom, right = selection
         assert 0 <= top and bottom < INTENT_COUNT and 0 <= left <= right
-        return [list(self.inputs[row][left:right + 1]) for row in range(top, bottom + 1)]
+        return [
+            list(self.inputs[row][left : right + 1]) for row in range(top, bottom + 1)
+        ]
 
     def at(self, row, col):
         """Return a single cell of the grid."""
@@ -127,7 +138,7 @@ class Inputs(Broadcaster):
         """Delete some frames."""
         assert 0 <= start and count >= 0
         for row in range(0, INTENT_COUNT):
-            del self.inputs[row][start:start + count]
+            del self.inputs[row][start : start + count]
         self.length -= count
         self.broadcast()
 

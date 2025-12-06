@@ -59,43 +59,95 @@ class App(tk.Tk):
 
         new_file_menu = tk.Menu(file_menu, tearoff=0)
         file_menu.add_cascade(label="New", menu=new_file_menu)
-        new_file_menu.add_command(label="Empty replay...", command=self.new_file, accelerator="Ctrl+N")
-        new_file_menu.add_command(label="From replay id...", command=lambda: LoadReplayDialog(self))
+        new_file_menu.add_command(
+            label="Empty replay...",
+            command=self.new_file,
+            accelerator="Ctrl+N",
+        )
+        new_file_menu.add_command(
+            label="From replay id...",
+            command=lambda: LoadReplayDialog(self),
+        )
 
-        file_menu.add_command(label="Open...", command=self.open_file, accelerator="Ctrl+O")
-        file_menu.add_command(label="Save", command=self.save_file, accelerator="Ctrl+S")
-        file_menu.add_command(label="Save As...", command=lambda: self.save_file(True), accelerator="Ctrl+Shift+S")
+        file_menu.add_command(
+            label="Open...",
+            command=self.open_file,
+            accelerator="Ctrl+O",
+        )
+        file_menu.add_command(
+            label="Save",
+            command=self.save_file,
+            accelerator="Ctrl+S",
+        )
+        file_menu.add_command(
+            label="Save As...",
+            command=lambda: self.save_file(True),
+            accelerator="Ctrl+Shift+S",
+        )
 
         self.edit_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Edit", underline=0, menu=self.edit_menu)
 
-        self.edit_menu.add_command(label="Undo", command=self.undo_stack.undo, state=tk.DISABLED, accelerator="Ctrl+Z")
-        self.edit_menu.add_command(label="Redo", command=self.undo_stack.redo, state=tk.DISABLED,
-                                   accelerator="Ctrl+Shift+Z")
+        self.edit_menu.add_command(
+            label="Undo",
+            command=self.undo_stack.undo,
+            state=tk.DISABLED,
+            accelerator="Ctrl+Z",
+        )
+        self.edit_menu.add_command(
+            label="Redo",
+            command=self.undo_stack.redo,
+            state=tk.DISABLED,
+            accelerator="Ctrl+Shift+Z",
+        )
         self.edit_menu.add_separator()
-        self.edit_menu.add_command(label="Jump to frame...", command=lambda: JumpToFrameDialog(self, self.cursor),
-                                   accelerator="Ctrl+G")
+        self.edit_menu.add_command(
+            label="Jump to frame...",
+            command=lambda: JumpToFrameDialog(self, self.cursor),
+            accelerator="Ctrl+G",
+        )
         self.edit_menu.add_separator()
-        self.edit_menu.add_command(label="Replay metadata...", command=self.edit_replay_metadata)
+        self.edit_menu.add_command(
+            label="Replay metadata...",
+            command=self.edit_replay_metadata,
+        )
 
         view_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="View", underline=0, menu=view_menu)
 
         show_level = tk.BooleanVar(self, value=True)
-        view_menu.add_checkbutton(label="Show level", variable=show_level, onvalue=True, offvalue=False)
-        show_level.trace_add("write", lambda *_: self.on_show_level_change(show_level.get()))
+        view_menu.add_checkbutton(
+            label="Show level",
+            variable=show_level,
+            onvalue=True,
+            offvalue=False,
+        )
+        show_level.trace_add(
+            "write", lambda *_: self.on_show_level_change(show_level.get())
+        )
 
         settings_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Settings", underline=0, menu=settings_menu)
 
-        settings_menu.add_command(label="Set Dustforce directory...", command=self.set_dustforce_directory)
+        settings_menu.add_command(
+            label="Set Dustforce directory...",
+            command=self.set_dustforce_directory,
+        )
 
         self.config(menu=menu_bar)
 
         # Widgets
         buttons = tk.Frame(self)
-        button1 = tk.Button(buttons, text="Watch", command=self.watch)
-        button2 = tk.Button(buttons, text="Load State and Watch", command=self.load_state_and_watch)
+        button1 = tk.Button(
+            buttons,
+            text="Watch",
+            command=self.watch,
+        )
+        button2 = tk.Button(
+            buttons,
+            text="Load State and Watch",
+            command=self.load_state_and_watch,
+        )
         self.level_view = LevelView(self, self.level, self.cursor)
         inputs_view = InputsView(self, self.inputs, self.cursor, self.undo_stack)
 
@@ -127,7 +179,9 @@ class App(tk.Tk):
 
         # Check if the Dustforce directory is valid
         if not os.path.isdir(config.get(ConfigOption.DUSTFORCE_PATH)):
-            tkinter.messagebox.showwarning(message="Could not find the Dustforce directory. Please update it in Settings.")
+            tkinter.messagebox.showwarning(
+                message="Could not find the Dustforce directory. Please update it in Settings."
+            )
 
     def update_title(self):
         title = "Dusted"
@@ -160,7 +214,7 @@ class App(tk.Tk):
             self.file = tkinter.filedialog.asksaveasfilename(
                 defaultextension=".dfreplay",
                 filetypes=[("replay files", "*.dfreplay")],
-                title="Save replay"
+                title="Save replay",
             )
             if not self.file:
                 return False
@@ -170,7 +224,7 @@ class App(tk.Tk):
         replay = Replay(
             username=b"TAS",
             level=self.level.get().encode(),
-            players=[PlayerData(self.character, self.inputs.get_intents())]
+            players=[PlayerData(self.character, self.inputs.get_intents())],
         )
 
         utils.write_replay_to_file(self.file, replay)
@@ -200,7 +254,7 @@ class App(tk.Tk):
         filepath = tkinter.filedialog.askopenfilename(
             defaultextension=".dfreplay",
             filetypes=[("replay files", "*.dfreplay")],
-            title="Load replay"
+            title="Load replay",
         )
         if filepath:
             replay = utils.load_replay_from_file(filepath)

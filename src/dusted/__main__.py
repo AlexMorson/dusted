@@ -13,7 +13,7 @@ def main():
     logging.basicConfig(
         handlers=[file_handler, stream_handler],
         level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(message)s"
+        format="%(asctime)s %(levelname)s %(message)s",
     )
 
     App().mainloop()

@@ -6,7 +6,9 @@ from dusted.inputs import Inputs
 class TestInputs(TestCase):
     def setUp(self):
         self.default = Inputs()
-        self.custom = Inputs(["".join(str((row + col) % 2) for col in range(100)) for row in range(8)])
+        self.custom = Inputs(
+            ["".join(str((row + col) % 2) for col in range(100)) for row in range(8)]
+        )
 
         self.callback = mock.Mock()
         self.default.subscribe(self.callback)
@@ -111,7 +113,9 @@ class TestInputs(TestCase):
         self.assertEqual(inputs[7][:4], list("1010"))
 
     def test_read(self):
-        self.assertEqual(self.custom.read((1, 1, 3, 3)), [list("010"), list("101"), list("010")])
+        self.assertEqual(
+            self.custom.read((1, 1, 3, 3)), [list("010"), list("101"), list("010")]
+        )
 
     def test_at(self):
         self.assertEqual(self.default.at(2, 1), "0")

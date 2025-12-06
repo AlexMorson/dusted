@@ -7,7 +7,7 @@ class Dialog(tk.Toplevel):
         super().__init__(parent)
 
         if platform.system() == "Linux":
-            self.attributes('-type', 'dialog')
+            self.attributes("-type", "dialog")
         self.resizable(False, False)
         self.grab_set()
         self.bind("<Escape>", lambda e: self.destroy())

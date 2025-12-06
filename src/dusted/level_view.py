@@ -44,7 +44,9 @@ class LevelView(tk.Canvas):
         for outline in outlines:
             self.create_polygon(*[(48 * x, 48 * y) for x, y in outline[0]], fill="#bbb")
             for hole in outline[1:]:
-                self.create_polygon(*[(48 * x, 48 * y) for x, y in hole], fill="#d9d9d9")
+                self.create_polygon(
+                    *[(48 * x, 48 * y) for x, y in hole], fill="#d9d9d9"
+                )
 
         # Pan to level start
         start = level_data.start_position()
@@ -64,9 +66,9 @@ class LevelView(tk.Canvas):
 
     def add_coordinate(self, frame, x, y):
         if frame < len(self.coords):  # Clear suffix
-            for i in self.path_objects[max(0, frame - 1):]:
+            for i in self.path_objects[max(0, frame - 1) :]:
                 self.delete(i)
-            self.path_objects = self.path_objects[:max(0, frame - 1)]
+            self.path_objects = self.path_objects[: max(0, frame - 1)]
             self.coords = self.coords[:frame]
         elif frame > len(self.coords):  # Loaded state in the future, pad values
             self.path_objects.extend([-1] * (frame - min(1, len(self.coords)) + 1))

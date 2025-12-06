@@ -17,8 +17,8 @@ class Cursor(Broadcaster):
 
     def is_selected(self, row, col):
         return (
-                self.selection_top <= row <= self.selection_bottom and
-                self.selection_left <= col <= self.selection_right
+            self.selection_top <= row <= self.selection_bottom
+            and self.selection_left <= col <= self.selection_right
         )
 
     def set(self, row, col, keep_selection=False):
@@ -47,7 +47,12 @@ class Cursor(Broadcaster):
 
     @property
     def selection(self):
-        return self.selection_top, self.selection_left, self.selection_bottom, self.selection_right
+        return (
+            self.selection_top,
+            self.selection_left,
+            self.selection_bottom,
+            self.selection_right,
+        )
 
     @property
     def selection_start(self):
@@ -67,7 +72,10 @@ class Cursor(Broadcaster):
 
     @property
     def has_selection(self):
-        return self.selection_left < self.selection_right or self.selection_top < self.selection_bottom
+        return (
+            self.selection_left < self.selection_right
+            or self.selection_top < self.selection_bottom
+        )
 
     def _update_selection_vars(self):
         self.selection_top = min(self.start_row, self.current_row)

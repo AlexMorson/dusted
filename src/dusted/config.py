@@ -12,16 +12,14 @@ class _ConfigOption(NamedTuple):
 
 
 class ConfigOption(Enum):
-    DUSTFORCE_PATH = _ConfigOption("dustforce_path", r"C:\Program Files (x86)\Steam\steamapps\common\Dustforce")
+    DUSTFORCE_PATH = _ConfigOption(
+        "dustforce_path", r"C:\Program Files (x86)\Steam\steamapps\common\Dustforce"
+    )
     SHOW_LEVEL = _ConfigOption("show_level", True)
 
     @classmethod
     def defaults(cls):
-        return {
-            option.value.name: option.value.default
-            for option in cls
-        }
-
+        return {option.value.name: option.value.default for option in cls}
 
 
 class Config:

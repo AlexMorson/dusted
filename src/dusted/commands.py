@@ -37,7 +37,10 @@ class SetInputsCommand(Command):
     def redo(self, inputs, cursor):
         if self.old_inputs is None or self.old_selection is None:
             assert self.old_inputs is None and self.old_selection is None
-            end = self.position[0] + len(self.new_inputs) - 1, self.position[1] + len(self.new_inputs[0]) - 1
+            end = (
+                self.position[0] + len(self.new_inputs) - 1,
+                self.position[1] + len(self.new_inputs[0]) - 1,
+            )
             self.old_inputs = inputs.read((*self.position, *end))
             self.old_selection = cursor.selection
 
@@ -114,7 +117,9 @@ class DeleteFramesCommand(Command):
     def redo(self, inputs, cursor):
         if self.old_inputs is None or self.old_selection_start is None:
             assert self.old_inputs is None and self.old_selection_start is None
-            self.old_inputs = inputs.read((0, self.start, INTENT_COUNT - 1, self.start + self.count - 1))
+            self.old_inputs = inputs.read(
+                (0, self.start, INTENT_COUNT - 1, self.start + self.count - 1)
+            )
             self.old_selection_start = cursor.selection_start
 
         inputs.delete_frames(self.start, self.count)

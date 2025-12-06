@@ -19,7 +19,7 @@ class UndoStack(Broadcaster):
         self.broadcast()
 
     def execute(self, command):
-        del self.stack[self.index:]
+        del self.stack[self.index :]
         if self.unmodified_index > self.index:
             self.unmodified_index = -1
 

@@ -74,7 +74,12 @@ class GridCell:
 
 class Grid(tk.Canvas):
     def __init__(self, parent, scrollbar, inputs, cursor, undo_stack):
-        super().__init__(parent, height=GRID_SIZE * (GRID_ROWS + 1), borderwidth=0, highlightthickness=0)
+        super().__init__(
+            parent,
+            height=GRID_SIZE * (GRID_ROWS + 1),
+            borderwidth=0,
+            highlightthickness=0,
+        )
 
         self.scrollbar = scrollbar
         self.inputs = inputs
@@ -95,7 +100,9 @@ class Grid(tk.Canvas):
         self.context_menu.add_command(label="Cut", command=self.cut)
         self.context_menu.add_command(label="Copy", command=self.copy)
         self.context_menu.add_command(label="Paste", command=self.paste)
-        self.context_menu.add_command(label="Insert frames", command=lambda: InsertFramesDialog(self))
+        self.context_menu.add_command(
+            label="Insert frames", command=lambda: InsertFramesDialog(self)
+        )
         self.context_menu.add_command(label="Delete frames", command=self.delete_frames)
 
         self.bind("<Configure>", lambda e: self.resize())
@@ -106,7 +113,10 @@ class Grid(tk.Canvas):
         self.bind("<ButtonRelease-3>", self.on_right_click)
         self.bind("<Button-4>", lambda e: self.on_scroll(tk.SCROLL, -1, tk.UNITS))
         self.bind("<Button-5>", lambda e: self.on_scroll(tk.SCROLL, 1, tk.UNITS))
-        self.bind("<MouseWheel>", lambda e: self.on_scroll(tk.SCROLL, -e.delta // 120, tk.UNITS))
+        self.bind(
+            "<MouseWheel>",
+            lambda e: self.on_scroll(tk.SCROLL, -e.delta // 120, tk.UNITS),
+        )
 
         self.bind("<Control-KeyPress-x>", lambda e: self.cut())
         self.bind("<Control-KeyPress-c>", lambda e: self.copy())
@@ -124,19 +134,39 @@ class Grid(tk.Canvas):
         self.bind("<KeyPress-Down>", lambda e: self.cursor.move(1, 0))
         self.bind("<KeyPress-Prior>", lambda e: self.cursor.move(0, -self.cell_width))
         self.bind("<KeyPress-Next>", lambda e: self.cursor.move(0, self.cell_width))
-        self.bind("<KeyPress-Home>", lambda e: self.cursor.set(self.cursor.position[0], 0))
-        self.bind("<KeyPress-End>", lambda e: self.cursor.set(self.cursor.position[0], len(self.inputs) - 1))
+        self.bind(
+            "<KeyPress-Home>", lambda e: self.cursor.set(self.cursor.position[0], 0)
+        )
+        self.bind(
+            "<KeyPress-End>",
+            lambda e: self.cursor.set(self.cursor.position[0], len(self.inputs) - 1),
+        )
 
         self.bind("<Shift-KeyPress-Left>", lambda e: self.cursor.move(0, -1, True))
         self.bind("<Shift-KeyPress-Right>", lambda e: self.cursor.move(0, 1, True))
         self.bind("<Shift-KeyPress-Up>", lambda e: self.cursor.move(-1, 0, True))
         self.bind("<Shift-KeyPress-Down>", lambda e: self.cursor.move(1, 0, True))
-        self.bind("<Shift-KeyPress-Prior>", lambda e: self.cursor.move(0, -self.cell_width, True))
-        self.bind("<Shift-KeyPress-Next>", lambda e: self.cursor.move(0, self.cell_width, True))
-        self.bind("<Shift-KeyPress-Home>", lambda e: self.cursor.set(self.cursor.position[0], 0, True))
-        self.bind("<Shift-KeyPress-End>",
-                  lambda e: self.cursor.set(self.cursor.position[0], len(self.inputs) - 1, True))
-        self.bind("<Control-KeyPress-g>", lambda e: JumpToFrameDialog(self, self.cursor))
+        self.bind(
+            "<Shift-KeyPress-Prior>",
+            lambda e: self.cursor.move(0, -self.cell_width, True),
+        )
+        self.bind(
+            "<Shift-KeyPress-Next>",
+            lambda e: self.cursor.move(0, self.cell_width, True),
+        )
+        self.bind(
+            "<Shift-KeyPress-Home>",
+            lambda e: self.cursor.set(self.cursor.position[0], 0, True),
+        )
+        self.bind(
+            "<Shift-KeyPress-End>",
+            lambda e: self.cursor.set(
+                self.cursor.position[0], len(self.inputs) - 1, True
+            ),
+        )
+        self.bind(
+            "<Control-KeyPress-g>", lambda e: JumpToFrameDialog(self, self.cursor)
+        )
 
         self.bind("<KeyPress>", self.on_key)
 
@@ -151,13 +181,17 @@ class Grid(tk.Canvas):
                 # Create frame tick
                 if col % 10 == 0:
                     line = self.create_line(x, 0, x, GRID_SIZE, width=2)
-                    text = self.create_text(x + 5, GRID_SIZE // 2, text=str(col), anchor="w")
+                    text = self.create_text(
+                        x + 5, GRID_SIZE // 2, text=str(col), anchor="w"
+                    )
                     self.frame_objects.append((line, text))
 
                 # Create cells
                 for row in range(GRID_ROWS):
                     y = GRID_SIZE * (row + 1)
-                    rect = self.create_rectangle(x, y, x + GRID_SIZE, y + GRID_SIZE, outline="gray")
+                    rect = self.create_rectangle(
+                        x, y, x + GRID_SIZE, y + GRID_SIZE, outline="gray"
+                    )
                     text = self.create_text(x + GRID_SIZE // 2, y + GRID_SIZE // 2)
                     self.grid_objects[row].append(GridCell(self, rect, text))
         else:
@@ -202,13 +236,17 @@ class Grid(tk.Canvas):
             return
 
         # Check if the input grid needs to be resized
-        extra_frames = max(0, self.cursor.selection_left + len(block[0]) - self.inputs.length)
+        extra_frames = max(
+            0, self.cursor.selection_left + len(block[0]) - self.inputs.length
+        )
 
-        self.undo_stack.execute(CommandSequence(
-            "Paste inputs",
-            InsertFramesCommand(self.inputs.length, extra_frames),
-            SetInputsCommand(self.cursor.selection_start, block)
-        ))
+        self.undo_stack.execute(
+            CommandSequence(
+                "Paste inputs",
+                InsertFramesCommand(self.inputs.length, extra_frames),
+                SetInputsCommand(self.cursor.selection_start, block),
+            )
+        )
 
     def clear_selection(self):
         self.undo_stack.execute(ClearInputsCommand(self.cursor.selection))
@@ -252,11 +290,13 @@ class Grid(tk.Canvas):
             command = SetInputsCommand(self.cursor.position, [[event.char.lower()]])
 
         if self.cursor.selection_right == len(self.inputs):
-            self.undo_stack.execute(CommandSequence(
-                "Fill selection" if fill else "Set inputs",
-                InsertFramesCommand(self.cursor.current_col, 1),
-                command
-            ))
+            self.undo_stack.execute(
+                CommandSequence(
+                    "Fill selection" if fill else "Set inputs",
+                    InsertFramesCommand(self.cursor.current_col, 1),
+                    command,
+                )
+            )
         else:
             self.undo_stack.execute(command)
 
@@ -307,7 +347,9 @@ class Grid(tk.Canvas):
                     if self.cursor.is_selected(row, true_col):
                         fg = "white"
                         bg = "#24b"
-                    elif row == 4 and value == "1" and self.inputs.at(1, true_col) != "2":
+                    elif (
+                        row == 4 and value == "1" and self.inputs.at(1, true_col) != "2"
+                    ):
                         # Fastfall without a down input
                         fg = "black"
                         bg = "#d22"
@@ -363,7 +405,20 @@ class InputsView(tk.Frame):
     def __init__(self, parent, inputs, cursor, undo_stack):
         super().__init__(parent)
 
-        for row, text in enumerate(["", "Frame", "X (L/R)", "Y (U/D)", "Jump", "Dash", "Fall", "Light", "Heavy", "Taunt"]):
+        for row, text in enumerate(
+            [
+                "",
+                "Frame",
+                "X (L/R)",
+                "Y (U/D)",
+                "Jump",
+                "Dash",
+                "Fall",
+                "Light",
+                "Heavy",
+                "Taunt",
+            ]
+        ):
             label = tk.Label(self, text=text, padx=5)
             label.grid(row=row, column=0, sticky="e")
 
@@ -383,14 +438,18 @@ if __name__ == "__main__":
     from dusted.cursor import Cursor
     from dusted.inputs import Inputs
 
-
     class App(tk.Tk):
         def __init__(self):
             super().__init__()
 
             inputs = []
             for _ in range(7):
-                inputs.append("".join(random.choice("0123456789ab") for _ in range(random.randint(800, 1000))))
+                inputs.append(
+                    "".join(
+                        random.choice("0123456789ab")
+                        for _ in range(random.randint(800, 1000))
+                    )
+                )
             inputs = Inputs(inputs)
             cursor = Cursor(inputs)
             undo_stack = UndoStack(inputs, cursor)
@@ -401,6 +460,5 @@ if __name__ == "__main__":
             inputs_view = InputsView(frame, inputs, cursor, undo_stack)
             inputs_view.pack(fill=tk.X)
             frame.pack(fill=tk.BOTH)
-
 
     App().mainloop()
