@@ -1,9 +1,9 @@
 import platform
 
 if platform.system() == "Windows":
-    from dusted.dustforce.windows import stdout, create_proc
+    from dusted.dustforce.windows import create_proc, stdout
 else:
-    from dusted.dustforce.linux import stdout, create_proc
+    from dusted.dustforce.linux import create_proc, stdout
 
 
 def watch_replay(replay_id):

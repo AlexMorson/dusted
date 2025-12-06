@@ -1,12 +1,12 @@
 import tkinter as tk
 
 from dusted.commands import (
-    CommandSequence,
-    InsertFramesCommand,
-    DeleteFramesCommand,
-    SetInputsCommand,
-    FillInputsCommand,
     ClearInputsCommand,
+    CommandSequence,
+    DeleteFramesCommand,
+    FillInputsCommand,
+    InsertFramesCommand,
+    SetInputsCommand,
 )
 from dusted.dialog import SimpleDialog
 from dusted.inputs import INTENT_COUNT

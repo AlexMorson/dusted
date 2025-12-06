@@ -3,7 +3,7 @@ import queue
 import threading
 import time
 
-from dusted.config import config, ConfigOption
+from dusted.config import ConfigOption, config
 
 watcher = None
 stdout = queue.Queue[str]()
@@ -22,7 +22,7 @@ class LogfileWatcher:
                 if self.file is None or new_size < self.size:
                     if self.file is not None:
                         self.file.close()
-                    self.file = open(self.path, "r")
+                    self.file = open(self.path)
                     self.file.seek(max(0, new_size - 4096))
                 self.size = new_size
 

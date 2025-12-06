@@ -7,7 +7,7 @@ from dustmaker.dfwriter import DFWriter
 from dustmaker.level import Level
 from dustmaker.replay import Replay
 
-from dusted.config import config, ConfigOption
+from dusted.config import ConfigOption, config
 
 
 def load_replay_from_dustkid(replay_id: str) -> Replay:

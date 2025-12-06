@@ -6,10 +6,10 @@ import tkinter as tk
 import tkinter.filedialog
 import tkinter.messagebox
 
-from dustmaker.replay import Replay, PlayerData, Character
+from dustmaker.replay import Character, PlayerData, Replay
 
 from dusted import dustforce, utils
-from dusted.config import config, ConfigOption
+from dusted.config import ConfigOption, config
 from dusted.cursor import Cursor
 from dusted.dialog import SimpleDialog
 from dusted.inputs import Inputs
@@ -17,7 +17,7 @@ from dusted.inputs_view import InputsView
 from dusted.jump_to_frame import JumpToFrameDialog
 from dusted.level import Level
 from dusted.level_view import LevelView
-from dusted.replay_metadata import ReplayMetadataDialog, ReplayMetadata
+from dusted.replay_metadata import ReplayMetadata, ReplayMetadataDialog
 from dusted.undo_stack import UndoStack
 
 LEVEL_PATTERN = r"START (.*)"
