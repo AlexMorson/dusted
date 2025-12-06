@@ -28,5 +28,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "mypy>=1.19.0",
     "ruff>=0.14.8",
+    "types-requests>=2.32.4.20250913",
 ]

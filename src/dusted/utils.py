@@ -26,7 +26,7 @@ def load_level(level_id: str) -> Level:
     return level
 
 
-def load_level_from_file(level_id: str) -> Level:
+def load_level_from_file(level_id: str) -> Level | None:
     for path in ("content/levels2", "content/levels3", "user/levels", "user/level_src"):
         level_path = Path(config.get(ConfigOption.DUSTFORCE_PATH)) / path / level_id
         try:
@@ -34,6 +34,7 @@ def load_level_from_file(level_id: str) -> Level:
                 return DFReader(file).read_level()
         except FileNotFoundError:
             pass
+    return None
 
 
 def load_level_from_dustkid(level_id: str) -> Level:

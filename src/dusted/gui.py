@@ -260,7 +260,7 @@ class App(tk.Tk):
             replay = utils.load_replay_from_file(filepath)
             self.load_replay(replay, filepath)
 
-    def load_replay(self, replay: Replay, filepath: str = None):
+    def load_replay(self, replay: Replay, filepath: str | None = None) -> None:
         self.file = filepath
         self.level.set(replay.level.decode())
         self.character = replay.players[0].character

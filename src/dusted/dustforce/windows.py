@@ -6,7 +6,7 @@ import time
 from dusted.config import config, ConfigOption
 
 watcher = None
-stdout = queue.Queue()
+stdout = queue.Queue[str]()
 
 
 class LogfileWatcher:

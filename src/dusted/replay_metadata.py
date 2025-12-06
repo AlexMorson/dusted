@@ -17,7 +17,12 @@ class ReplayMetadata:
 
 class ReplayMetadataDialog(Dialog):
     def __init__(
-        self, app, callback, *, defaults: ReplayMetadata = None, creating=False
+        self,
+        app,
+        callback,
+        *,
+        defaults: ReplayMetadata | None = None,
+        creating=False,
     ):
         super().__init__(app)
         self.callback = callback
