@@ -9,7 +9,7 @@ from dusted.commands import (
     SetInputsCommand,
 )
 from dusted.dialog import SimpleDialog
-from dusted.inputs import INTENT_COUNT
+from dusted.inputs import DEFAULT_INPUTS, INTENT_COUNT
 from dusted.jump_to_frame import JumpToFrameDialog
 from dusted.undo_stack import UndoStack
 from dusted.utils import modifier_held
@@ -344,25 +344,28 @@ class Grid(tk.Canvas):
                     else:
                         value = self.inputs.at(row, true_col)
 
+                    fg = "black"
+                    if value == DEFAULT_INPUTS[row]:
+                        fg = "lightgray"
+
                     if self.cursor.is_selected(row, true_col):
-                        fg = "white"
+                        if value == DEFAULT_INPUTS[row]:
+                            fg = "#56a"
+                        else:
+                            fg = "white"
                         bg = "#24b"
                     elif (
                         row == 4 and value == "1" and self.inputs.at(1, true_col) != "2"
                     ):
                         # Fastfall without a down input
-                        fg = "black"
                         bg = "#d22"
                     elif true_col < 55:
                         # Inputs before the player has control
-                        fg = "black"
                         bg = "#dfd"
                     elif true_col >= len(self.inputs) - 14:
                         # Inputs that are not early-exit safe
-                        fg = "black"
                         bg = "#feb"
                     else:
-                        fg = "black"
                         bg = "white"
 
                     cell.config(state="normal", bg=bg, fg=fg, text=value)
