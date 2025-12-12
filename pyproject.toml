@@ -18,6 +18,7 @@ dependencies = [
 
 [project.urls]
 Source = "https://github.com/alexmorson/dusted"
+Changelog = "https://github.com/alexmorson/dusted/releases"
 
 [project.gui-scripts]
 dusted = "dusted.__main__:main"
