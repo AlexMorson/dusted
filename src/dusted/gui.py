@@ -165,9 +165,11 @@ class App(tk.Tk):
         self.rowconfigure(1, weight=1)
 
         # Apply config state
+        self.geometry(config.window_geometry)
         show_level.set(config.show_level)
 
-        # Hotkeys
+        # Hotkeys / Callbacks
+        self.bind("<Configure>", self.on_configure)
         self.bind("<Control-KeyPress-n>", lambda e: self.new_file())
         self.bind("<Control-KeyPress-o>", lambda e: self.open_file())
         self.bind("<Control-KeyPress-s>", lambda e: self.save_file())
@@ -199,6 +201,15 @@ class App(tk.Tk):
 
         # Schedule a new write soon.
         self.write_config_timer = self.after(ms=1000, func=config.write)
+
+    def on_configure(self, event: tk.Event) -> None:
+        if event.widget is not self:
+            return
+
+        geometry = self.geometry()
+        if config.window_geometry != geometry:
+            config.window_geometry = geometry
+            self.write_config_soon()
 
     def update_title(self):
         title = "Dusted"

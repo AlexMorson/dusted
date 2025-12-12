@@ -14,6 +14,7 @@ CONFIG_PATH = Path(platformdirs.user_config_dir("dusted")) / "config.ini"
 class Config:
     dustforce_path: str = r"C:\Program Files (x86)\Steam\steamapps\common\Dustforce"
     show_level: bool = True
+    window_geometry: str = "800x600"
 
     @classmethod
     def read(cls) -> Config:
@@ -25,6 +26,7 @@ class Config:
         return cls(
             dustforce_path=parser.get("DEFAULT", "dustforce_path"),
             show_level=parser.getboolean("DEFAULT", "show_level"),
+            window_geometry=parser.get("DEFAULT", "window_geometry"),
         )
 
     def write(self) -> None:
