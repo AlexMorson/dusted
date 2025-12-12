@@ -289,7 +289,7 @@ class App(tk.Tk):
 
     def set_dustforce_directory(self):
         new_path = tkinter.filedialog.askdirectory(initialdir=config.dustforce_path)
-        if new_path:
+        if new_path and config.dustforce_path != new_path:
             config.dustforce_path = new_path
             self.write_config_soon()
 
@@ -335,5 +335,6 @@ class App(tk.Tk):
             # you can't resize the window to be larger than its current size.
             self.maxsize(100_000, 100_000)
 
-        config.show_level = show
-        self.write_config_soon()
+        if config.show_level != show:
+            config.show_level = show
+            self.write_config_soon()
