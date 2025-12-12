@@ -51,6 +51,8 @@ class App(tk.Tk):
         self.undo_stack = UndoStack(self.inputs, self.cursor)
         self.undo_stack.subscribe(self.on_undo_stack_change)
 
+        self.write_config_timer = None
+
         # Menu bar
         menu_bar = tk.Menu(self)
 
@@ -183,6 +185,21 @@ class App(tk.Tk):
                 message="Could not find the Dustforce directory. Please update it in Settings."
             )
 
+    def write_config_soon(self) -> None:
+        """
+        Schedule writing the config file.
+
+        This is to debounce successive quick config changes, to avoid
+        constantly writing to the disk.
+        """
+
+        # If a write has already been scheduled, cancel it.
+        if self.write_config_timer is not None:
+            self.after_cancel(self.write_config_timer)
+
+        # Schedule a new write soon.
+        self.write_config_timer = self.after(ms=1000, func=config.write)
+
     def update_title(self):
         title = "Dusted"
         if self.file is not None:
@@ -275,7 +292,7 @@ class App(tk.Tk):
         new_path = tkinter.filedialog.askdirectory(initialdir=current_path)
         if new_path:
             config.set(ConfigOption.DUSTFORCE_PATH, new_path)
-            config.write()
+            self.write_config_soon()
 
     def on_undo_stack_change(self):
         undo_state = tk.NORMAL if self.undo_stack.can_undo else tk.DISABLED
@@ -320,4 +337,4 @@ class App(tk.Tk):
             self.maxsize(100_000, 100_000)
 
         config.set(ConfigOption.SHOW_LEVEL, show)
-        config.write()
+        self.write_config_soon()
