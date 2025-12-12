@@ -9,7 +9,7 @@ import tkinter.messagebox
 from dustmaker.replay import Character, PlayerData, Replay
 
 from dusted import dustforce, utils
-from dusted.config import ConfigOption, config
+from dusted.config import config
 from dusted.cursor import Cursor
 from dusted.dialog import SimpleDialog
 from dusted.inputs import Inputs
@@ -165,7 +165,7 @@ class App(tk.Tk):
         self.rowconfigure(1, weight=1)
 
         # Apply config state
-        show_level.set(config.get(ConfigOption.SHOW_LEVEL))
+        show_level.set(config.show_level)
 
         # Hotkeys
         self.bind("<Control-KeyPress-n>", lambda e: self.new_file())
@@ -180,7 +180,7 @@ class App(tk.Tk):
         self.after_idle(self.handle_stdout)
 
         # Check if the Dustforce directory is valid
-        if not os.path.isdir(config.get(ConfigOption.DUSTFORCE_PATH)):
+        if not os.path.isdir(config.dustforce_path):
             tkinter.messagebox.showwarning(
                 message="Could not find the Dustforce directory. Please update it in Settings."
             )
@@ -288,10 +288,9 @@ class App(tk.Tk):
             self.undo_stack.set_unmodified()
 
     def set_dustforce_directory(self):
-        current_path = config.get(ConfigOption.DUSTFORCE_PATH)
-        new_path = tkinter.filedialog.askdirectory(initialdir=current_path)
+        new_path = tkinter.filedialog.askdirectory(initialdir=config.dustforce_path)
         if new_path:
-            config.set(ConfigOption.DUSTFORCE_PATH, new_path)
+            config.dustforce_path = new_path
             self.write_config_soon()
 
     def on_undo_stack_change(self):
@@ -336,5 +335,5 @@ class App(tk.Tk):
             # you can't resize the window to be larger than its current size.
             self.maxsize(100_000, 100_000)
 
-        config.set(ConfigOption.SHOW_LEVEL, show)
+        config.show_level = show
         self.write_config_soon()

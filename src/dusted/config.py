@@ -1,53 +1,69 @@
+from __future__ import annotations
+
 import configparser
-from enum import Enum
+import dataclasses
+from dataclasses import dataclass
 from pathlib import Path
-from typing import NamedTuple
 
 import platformdirs
 
-
-class _ConfigOption(NamedTuple):
-    name: str
-    default: str | bool
+CONFIG_PATH = Path(platformdirs.user_config_dir("dusted")) / "config.ini"
 
 
-class ConfigOption(Enum):
-    DUSTFORCE_PATH = _ConfigOption(
-        "dustforce_path", r"C:\Program Files (x86)\Steam\steamapps\common\Dustforce"
-    )
-    SHOW_LEVEL = _ConfigOption("show_level", True)
+@dataclass
+class Config:
+    dustforce_path: str = r"C:\Program Files (x86)\Steam\steamapps\common\Dustforce"
+    show_level: bool = True
 
     @classmethod
-    def defaults(cls):
-        return {option.value.name: option.value.default for option in cls}
+    def read(cls) -> Config:
+        """Read the config file."""
 
+        parser = configparser.RawConfigParser(defaults=cls._defaults())
+        parser.read(CONFIG_PATH)
 
-class Config:
-    def __init__(self):
-        self.path = Path(platformdirs.user_config_dir("dusted")) / "config.ini"
-        self.config = configparser.ConfigParser(ConfigOption.defaults())
-        self.read()
+        return cls(
+            dustforce_path=parser.get("DEFAULT", "dustforce_path"),
+            show_level=parser.getboolean("DEFAULT", "show_level"),
+        )
 
-    def get(self, option: ConfigOption):
-        name = option.value.name
-        if isinstance(option.value.default, bool):
-            return self.config["DEFAULT"].getboolean(name)
-        return self.config["DEFAULT"].get(name)
+    def write(self) -> None:
+        """Write the config file."""
 
-    def set(self, option: ConfigOption, value: str | bool):
+        parser = configparser.RawConfigParser(defaults=self._defaults())
+        parser.read_dict(
+            {
+                "DEFAULT": {
+                    key: self._stringify_value(value)
+                    for key, value in dataclasses.asdict(self).items()
+                }
+            }
+        )
+
+        CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with CONFIG_PATH.open("w+") as file:
+            parser.write(file)
+
+    @classmethod
+    def _defaults(cls) -> dict[str, str]:
+        """Return the default values for the fields."""
+
+        return {
+            field.name: cls._stringify_value(field.default)
+            for field in dataclasses.fields(cls)
+            if field.default is not dataclasses.MISSING
+        }
+
+    @staticmethod
+    def _stringify_value(value: str | bool) -> str:
+        """Convert a value into a string that the parser can deal with."""
+
         if isinstance(value, bool):
-            real_value = "true" if value else "false"
-        else:
-            real_value = value
-        self.config["DEFAULT"][option.value.name] = real_value
-
-    def read(self):
-        self.config.read(self.path)
-
-    def write(self):
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("w+") as file:
-            self.config.write(file)
+            if value:
+                return "true"
+            else:
+                return "false"
+        return value
 
 
-config = Config()
+config = Config.read()
