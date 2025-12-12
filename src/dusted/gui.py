@@ -165,7 +165,8 @@ class App(tk.Tk):
         self.rowconfigure(1, weight=1)
 
         # Apply config state
-        self.geometry(config.window_geometry)
+        if config.window_geometry:
+            self.geometry(config.window_geometry)
         show_level.set(config.show_level)
 
         # Hotkeys / Callbacks
