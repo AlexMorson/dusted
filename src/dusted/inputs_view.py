@@ -280,7 +280,8 @@ class Grid(tk.Canvas):
 
         self.cursor.set(row, col + self.current_col, keep_selection)
 
-        self.drag_timer = self.after_idle(self.on_drag_tick)
+        if self.drag_timer is None:
+            self.drag_timer = self.after_idle(self.on_drag_tick)
 
     def on_drag(self, event):
         raw_col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
@@ -314,6 +315,10 @@ class Grid(tk.Canvas):
             self.scroll_fraction = 0
 
     def on_right_click(self, event):
+        # This widget will not see any mouse release events that are sent while
+        # the popup window is open, so emulate one now to be safe.
+        self.on_release()
+
         self.context_menu.tk_popup(event.x_root, event.y_root)
 
     def on_key(self, event):
