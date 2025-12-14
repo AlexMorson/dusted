@@ -92,6 +92,8 @@ class Grid(tk.Canvas):
         self.frame_objects = []
         self.current_col = 0
         self.redraw_scheduled = False
+        self.drag_timer = None
+        self.scroll_fraction = 0
 
         self.inputs.subscribe(self.redraw)
         self.cursor.subscribe(self.on_cursor_move)
@@ -110,6 +112,7 @@ class Grid(tk.Canvas):
         self.bind("<Button-1>", self.on_click)
         self.bind("<Shift-Button-1>", lambda e: self.on_click(e, True))
         self.bind("<B1-Motion>", self.on_drag)
+        self.bind("<ButtonRelease-1>", lambda e: self.on_release())
         self.bind("<ButtonRelease-3>", self.on_right_click)
         self.bind("<Button-4>", lambda e: self.on_scroll(tk.SCROLL, -1, tk.UNITS))
         self.bind("<Button-5>", lambda e: self.on_scroll(tk.SCROLL, 1, tk.UNITS))
@@ -277,6 +280,8 @@ class Grid(tk.Canvas):
 
         self.cursor.set(row, col + self.current_col, keep_selection)
 
+        self.drag_timer = self.after_idle(self.on_drag_tick)
+
     def on_drag(self, event):
         raw_col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
         raw_row = (event.y_root - self.winfo_rooty()) // GRID_SIZE - 2
@@ -286,6 +291,27 @@ class Grid(tk.Canvas):
         row = max(0, min(INTENT_COUNT - 1, raw_row))
 
         self.cursor.set(row, col + self.current_col, True)
+
+    def on_drag_tick(self) -> None:
+        """Called frequently while dragging."""
+
+        # If the mouse is outside the view, scroll in that direction.
+        mouse_x = self.winfo_pointerx() - self.winfo_rootx()
+        if mouse_x < 0:
+            self.scroll_fraction += mouse_x
+        elif mouse_x > (self.cell_width - 1) * GRID_SIZE:
+            self.scroll_fraction += mouse_x - (self.cell_width - 1) * GRID_SIZE
+
+        col_offset, self.scroll_fraction = divmod(self.scroll_fraction, GRID_SIZE)
+        self.move_cursor(0, col_offset, keep_selection=True)
+
+        self.drag_timer = self.after(33, self.on_drag_tick)
+
+    def on_release(self) -> None:
+        if self.drag_timer is not None:
+            self.after_cancel(self.drag_timer)
+            self.drag_timer = None
+            self.scroll_fraction = 0
 
     def on_right_click(self, event):
         self.context_menu.tk_popup(event.x_root, event.y_root)
