@@ -92,6 +92,8 @@ class Grid(tk.Canvas):
         self.frame_objects = []
         self.current_col = 0
         self.redraw_scheduled = False
+        self.drag_timer = None
+        self.scroll_fraction = 0
 
         self.inputs.subscribe(self.redraw)
         self.cursor.subscribe(self.on_cursor_move)
@@ -110,6 +112,7 @@ class Grid(tk.Canvas):
         self.bind("<Button-1>", self.on_click)
         self.bind("<Shift-Button-1>", lambda e: self.on_click(e, True))
         self.bind("<B1-Motion>", self.on_drag)
+        self.bind("<ButtonRelease-1>", lambda e: self.on_release())
         self.bind("<ButtonRelease-3>", self.on_right_click)
         self.bind("<Button-4>", lambda e: self.on_scroll(tk.SCROLL, -1, tk.UNITS))
         self.bind("<Button-5>", lambda e: self.on_scroll(tk.SCROLL, 1, tk.UNITS))
@@ -128,12 +131,14 @@ class Grid(tk.Canvas):
         self.bind("<Delete>", lambda e: self.clear_selection())
         self.bind("<BackSpace>", lambda e: self.clear_selection())
 
-        self.bind("<KeyPress-Left>", lambda e: self.cursor.move(0, -1))
-        self.bind("<KeyPress-Right>", lambda e: self.cursor.move(0, 1))
-        self.bind("<KeyPress-Up>", lambda e: self.cursor.move(-1, 0))
-        self.bind("<KeyPress-Down>", lambda e: self.cursor.move(1, 0))
-        self.bind("<KeyPress-Prior>", lambda e: self.cursor.move(0, -self.cell_width))
-        self.bind("<KeyPress-Next>", lambda e: self.cursor.move(0, self.cell_width))
+        self.bind("<KeyPress-Left>", lambda e: self.move_cursor(0, -1))
+        self.bind("<KeyPress-Right>", lambda e: self.move_cursor(0, 1))
+        self.bind("<KeyPress-Up>", lambda e: self.move_cursor(-1, 0))
+        self.bind("<KeyPress-Down>", lambda e: self.move_cursor(1, 0))
+        self.bind(
+            "<KeyPress-Prior>", lambda e: self.move_cursor(0, 1 - self.cell_width)
+        )
+        self.bind("<KeyPress-Next>", lambda e: self.move_cursor(0, self.cell_width - 1))
         self.bind(
             "<KeyPress-Home>", lambda e: self.cursor.set(self.cursor.position[0], 0)
         )
@@ -142,17 +147,17 @@ class Grid(tk.Canvas):
             lambda e: self.cursor.set(self.cursor.position[0], len(self.inputs) - 1),
         )
 
-        self.bind("<Shift-KeyPress-Left>", lambda e: self.cursor.move(0, -1, True))
-        self.bind("<Shift-KeyPress-Right>", lambda e: self.cursor.move(0, 1, True))
-        self.bind("<Shift-KeyPress-Up>", lambda e: self.cursor.move(-1, 0, True))
-        self.bind("<Shift-KeyPress-Down>", lambda e: self.cursor.move(1, 0, True))
+        self.bind("<Shift-KeyPress-Left>", lambda e: self.move_cursor(0, -1, True))
+        self.bind("<Shift-KeyPress-Right>", lambda e: self.move_cursor(0, 1, True))
+        self.bind("<Shift-KeyPress-Up>", lambda e: self.move_cursor(-1, 0, True))
+        self.bind("<Shift-KeyPress-Down>", lambda e: self.move_cursor(1, 0, True))
         self.bind(
             "<Shift-KeyPress-Prior>",
-            lambda e: self.cursor.move(0, -self.cell_width, True),
+            lambda e: self.move_cursor(0, 1 - self.cell_width, True),
         )
         self.bind(
             "<Shift-KeyPress-Next>",
-            lambda e: self.cursor.move(0, self.cell_width, True),
+            lambda e: self.move_cursor(0, self.cell_width - 1, True),
         )
         self.bind(
             "<Shift-KeyPress-Home>",
@@ -265,16 +270,48 @@ class Grid(tk.Canvas):
 
     def on_click(self, event, keep_selection=False):
         self.focus_set()
-        col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
-        row = (event.y_root - self.winfo_rooty()) // GRID_SIZE - 2
-        if 0 <= row < INTENT_COUNT and 0 <= col:
-            self.cursor.set(row, col + self.current_col, keep_selection)
+
+        raw_col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
+        raw_row = (event.y_root - self.winfo_rooty()) // GRID_SIZE - 2
+
+        # Clamp to the bounds of the view.
+        col = max(0, min(self.cell_width - 2, raw_col))
+        row = max(0, min(INTENT_COUNT - 1, raw_row))
+
+        self.cursor.set(row, col + self.current_col, keep_selection)
+
+        self.drag_timer = self.after_idle(self.on_drag_tick)
 
     def on_drag(self, event):
-        col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
-        row = (event.y_root - self.winfo_rooty()) // GRID_SIZE - 2
-        if 0 <= row < INTENT_COUNT and 0 <= col:
-            self.cursor.set(row, col + self.current_col, True)
+        raw_col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
+        raw_row = (event.y_root - self.winfo_rooty()) // GRID_SIZE - 2
+
+        # Clamp to the bounds of the view.
+        col = max(0, min(self.cell_width - 2, raw_col))
+        row = max(0, min(INTENT_COUNT - 1, raw_row))
+
+        self.cursor.set(row, col + self.current_col, True)
+
+    def on_drag_tick(self) -> None:
+        """Called frequently while dragging."""
+
+        # If the mouse is outside the view, scroll in that direction.
+        mouse_x = self.winfo_pointerx() - self.winfo_rootx()
+        if mouse_x < 0:
+            self.scroll_fraction += mouse_x
+        elif mouse_x > (self.cell_width - 1) * GRID_SIZE:
+            self.scroll_fraction += mouse_x - (self.cell_width - 1) * GRID_SIZE
+
+        col_offset, self.scroll_fraction = divmod(self.scroll_fraction, GRID_SIZE)
+        self.move_cursor(0, col_offset, keep_selection=True)
+
+        self.drag_timer = self.after(33, self.on_drag_tick)
+
+    def on_release(self) -> None:
+        if self.drag_timer is not None:
+            self.after_cancel(self.drag_timer)
+            self.drag_timer = None
+            self.scroll_fraction = 0
 
     def on_right_click(self, event):
         self.context_menu.tk_popup(event.x_root, event.y_root)
@@ -314,6 +351,26 @@ class Grid(tk.Canvas):
                 self.current_col += direction * (self.cell_width - 1)
             self.current_col = max(0, min(len(self.inputs), self.current_col))
         self.redraw()
+
+    def move_cursor(
+        self,
+        row_offset: int,
+        col_offset: int,
+        keep_selection: bool = False,
+    ) -> None:
+        """Move the cursor, keeping it on-screen."""
+
+        # Delay our cursor move callback from running until we have finished.
+        with self.cursor.batch():
+            self.cursor.move(row_offset, col_offset, keep_selection)
+
+            # Check if the cursor is now off-screen.
+            _, col = self.cursor.position
+            if not (self.current_col <= col < self.current_col + self.cell_width - 1):
+                # Scroll the view by the same amount.
+                self.current_col = max(
+                    0, min(len(self.inputs), self.current_col + col_offset)
+                )
 
     def on_cursor_move(self):
         _, col = self.cursor.position
