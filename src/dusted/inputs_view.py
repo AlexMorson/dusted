@@ -128,12 +128,14 @@ class Grid(tk.Canvas):
         self.bind("<Delete>", lambda e: self.clear_selection())
         self.bind("<BackSpace>", lambda e: self.clear_selection())
 
-        self.bind("<KeyPress-Left>", lambda e: self.cursor.move(0, -1))
-        self.bind("<KeyPress-Right>", lambda e: self.cursor.move(0, 1))
-        self.bind("<KeyPress-Up>", lambda e: self.cursor.move(-1, 0))
-        self.bind("<KeyPress-Down>", lambda e: self.cursor.move(1, 0))
-        self.bind("<KeyPress-Prior>", lambda e: self.cursor.move(0, -self.cell_width))
-        self.bind("<KeyPress-Next>", lambda e: self.cursor.move(0, self.cell_width))
+        self.bind("<KeyPress-Left>", lambda e: self.move_cursor(0, -1))
+        self.bind("<KeyPress-Right>", lambda e: self.move_cursor(0, 1))
+        self.bind("<KeyPress-Up>", lambda e: self.move_cursor(-1, 0))
+        self.bind("<KeyPress-Down>", lambda e: self.move_cursor(1, 0))
+        self.bind(
+            "<KeyPress-Prior>", lambda e: self.move_cursor(0, 1 - self.cell_width)
+        )
+        self.bind("<KeyPress-Next>", lambda e: self.move_cursor(0, self.cell_width - 1))
         self.bind(
             "<KeyPress-Home>", lambda e: self.cursor.set(self.cursor.position[0], 0)
         )
@@ -142,17 +144,17 @@ class Grid(tk.Canvas):
             lambda e: self.cursor.set(self.cursor.position[0], len(self.inputs) - 1),
         )
 
-        self.bind("<Shift-KeyPress-Left>", lambda e: self.cursor.move(0, -1, True))
-        self.bind("<Shift-KeyPress-Right>", lambda e: self.cursor.move(0, 1, True))
-        self.bind("<Shift-KeyPress-Up>", lambda e: self.cursor.move(-1, 0, True))
-        self.bind("<Shift-KeyPress-Down>", lambda e: self.cursor.move(1, 0, True))
+        self.bind("<Shift-KeyPress-Left>", lambda e: self.move_cursor(0, -1, True))
+        self.bind("<Shift-KeyPress-Right>", lambda e: self.move_cursor(0, 1, True))
+        self.bind("<Shift-KeyPress-Up>", lambda e: self.move_cursor(-1, 0, True))
+        self.bind("<Shift-KeyPress-Down>", lambda e: self.move_cursor(1, 0, True))
         self.bind(
             "<Shift-KeyPress-Prior>",
-            lambda e: self.cursor.move(0, -self.cell_width, True),
+            lambda e: self.move_cursor(0, 1 - self.cell_width, True),
         )
         self.bind(
             "<Shift-KeyPress-Next>",
-            lambda e: self.cursor.move(0, self.cell_width, True),
+            lambda e: self.move_cursor(0, self.cell_width - 1, True),
         )
         self.bind(
             "<Shift-KeyPress-Home>",
@@ -314,6 +316,26 @@ class Grid(tk.Canvas):
                 self.current_col += direction * (self.cell_width - 1)
             self.current_col = max(0, min(len(self.inputs), self.current_col))
         self.redraw()
+
+    def move_cursor(
+        self,
+        row_offset: int,
+        col_offset: int,
+        keep_selection: bool = False,
+    ) -> None:
+        """Move the cursor, keeping it on-screen."""
+
+        # Delay our cursor move callback from running until we have finished.
+        with self.cursor.batch():
+            self.cursor.move(row_offset, col_offset, keep_selection)
+
+            # Check if the cursor is now off-screen.
+            _, col = self.cursor.position
+            if not (self.current_col <= col < self.current_col + self.cell_width - 1):
+                # Scroll the view by the same amount.
+                self.current_col = max(
+                    0, min(len(self.inputs), self.current_col + col_offset)
+                )
 
     def on_cursor_move(self):
         _, col = self.cursor.position
