@@ -22,11 +22,19 @@ class Cursor(Broadcaster):
         )
 
     def set(self, row, col, keep_selection=False):
-        self.current_row = max(0, min(INTENT_COUNT - 1, row))
-        self.current_col = max(0, min(len(self.inputs), col))
+        new_row = max(0, min(INTENT_COUNT - 1, row))
+        new_col = max(0, min(len(self.inputs), col))
+
+        if new_row == self.current_row and new_col == self.current_col:
+            return
+
+        self.current_row = new_row
+        self.current_col = new_col
+
         if not keep_selection:
             self.start_row = self.current_row
             self.start_col = self.current_col
+
         self._update_selection_vars()
 
     def select(self, selection):
@@ -34,12 +42,11 @@ class Cursor(Broadcaster):
         self._update_selection_vars()
 
     def move(self, row_offset, col_offset, keep_selection=False):
-        self.current_row = max(0, min(INTENT_COUNT - 1, self.current_row + row_offset))
-        self.current_col = max(0, min(len(self.inputs), self.current_col + col_offset))
-        if not keep_selection:
-            self.start_row = self.current_row
-            self.start_col = self.current_col
-        self._update_selection_vars()
+        self.set(
+            row=self.current_row + row_offset,
+            col=self.current_col + col_offset,
+            keep_selection=keep_selection,
+        )
 
     @property
     def position(self):
