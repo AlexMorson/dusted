@@ -267,16 +267,25 @@ class Grid(tk.Canvas):
 
     def on_click(self, event, keep_selection=False):
         self.focus_set()
-        col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
-        row = (event.y_root - self.winfo_rooty()) // GRID_SIZE - 2
-        if 0 <= row < INTENT_COUNT and 0 <= col:
-            self.cursor.set(row, col + self.current_col, keep_selection)
+
+        raw_col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
+        raw_row = (event.y_root - self.winfo_rooty()) // GRID_SIZE - 2
+
+        # Clamp to the bounds of the view.
+        col = max(0, min(self.cell_width - 2, raw_col))
+        row = max(0, min(INTENT_COUNT - 1, raw_row))
+
+        self.cursor.set(row, col + self.current_col, keep_selection)
 
     def on_drag(self, event):
-        col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
-        row = (event.y_root - self.winfo_rooty()) // GRID_SIZE - 2
-        if 0 <= row < INTENT_COUNT and 0 <= col:
-            self.cursor.set(row, col + self.current_col, True)
+        raw_col = (event.x_root - self.winfo_rootx()) // GRID_SIZE
+        raw_row = (event.y_root - self.winfo_rooty()) // GRID_SIZE - 2
+
+        # Clamp to the bounds of the view.
+        col = max(0, min(self.cell_width - 2, raw_col))
+        row = max(0, min(INTENT_COUNT - 1, raw_row))
+
+        self.cursor.set(row, col + self.current_col, True)
 
     def on_right_click(self, event):
         self.context_menu.tk_popup(event.x_root, event.y_root)
