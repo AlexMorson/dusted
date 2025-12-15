@@ -287,3 +287,37 @@ class TestReplayDiagnostics(TestCase):
         )
         self.assertEqual(self.diagnostics.warnings, set())
         self.assertEqual(self.diagnostics.errors, set())
+
+    def test_error_triple_tap_dash(self):
+        """Test that another tap after a DTD dash isn't a valid dash."""
+
+        self.inputs.set(
+            """\
+212121
+111112
+000000
+001010
+000001
+000000
+000000
+000000""".splitlines()
+        )
+        self.assertEqual(self.diagnostics.warnings, set())
+        self.assertEqual(self.diagnostics.errors, {(4, 5)})
+
+    def test_error_triple_tap_fall(self):
+        """Test that another tap after a DTD fall isn't a valid fall."""
+
+        self.inputs.set(
+            """\
+111111
+212121
+000000
+000001
+001010
+000000
+000000
+000000""".splitlines()
+        )
+        self.assertEqual(self.diagnostics.warnings, set())
+        self.assertEqual(self.diagnostics.errors, {(3, 5)})

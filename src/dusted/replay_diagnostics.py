@@ -90,6 +90,7 @@ class ReplayDiagnostics(Broadcaster):
                         and frame <= first_tap_frame + MAXIMUM_DOUBLE_TAP_DELAY
                     ):
                         double_tap = direction
+                        first_tap = None
                     else:
                         first_tap = frame, direction
 
