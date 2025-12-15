@@ -17,6 +17,7 @@ from dusted.inputs_view import InputsView
 from dusted.jump_to_frame import JumpToFrameDialog
 from dusted.level import Level
 from dusted.level_view import LevelView
+from dusted.replay_diagnostics import ReplayDiagnostics
 from dusted.replay_metadata import ReplayMetadata, ReplayMetadataDialog
 from dusted.undo_stack import UndoStack
 
@@ -47,6 +48,7 @@ class App(tk.Tk):
         self.level = Level("downhill")
         self.character = Character.DUSTMAN
         self.inputs = Inputs()
+        self.diagnostics = ReplayDiagnostics(self.inputs)
         self.cursor = Cursor(self.inputs)
         self.undo_stack = UndoStack(self.inputs, self.cursor)
         self.undo_stack.subscribe(self.on_undo_stack_change)
@@ -151,7 +153,13 @@ class App(tk.Tk):
             command=self.load_state_and_watch,
         )
         self.level_view = LevelView(self, self.level, self.cursor)
-        inputs_view = InputsView(self, self.inputs, self.cursor, self.undo_stack)
+        inputs_view = InputsView(
+            self,
+            self.inputs,
+            self.diagnostics,
+            self.cursor,
+            self.undo_stack,
+        )
 
         # Layout
         button1.pack(side=tk.LEFT)

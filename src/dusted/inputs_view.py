@@ -11,6 +11,7 @@ from dusted.commands import (
 from dusted.dialog import SimpleDialog
 from dusted.inputs import DEFAULT_INPUTS, INTENT_COUNT
 from dusted.jump_to_frame import JumpToFrameDialog
+from dusted.replay_diagnostics import ReplayDiagnostics
 from dusted.undo_stack import UndoStack
 from dusted.utils import modifier_held
 
@@ -73,7 +74,7 @@ class GridCell:
 
 
 class Grid(tk.Canvas):
-    def __init__(self, parent, scrollbar, inputs, cursor, undo_stack):
+    def __init__(self, parent, scrollbar, inputs, diagnostics, cursor, undo_stack):
         super().__init__(
             parent,
             height=GRID_SIZE * (GRID_ROWS + 1),
@@ -83,6 +84,7 @@ class Grid(tk.Canvas):
 
         self.scrollbar = scrollbar
         self.inputs = inputs
+        self.diagnostics = diagnostics
         self.cursor = cursor
         self.undo_stack = undo_stack
 
@@ -96,6 +98,7 @@ class Grid(tk.Canvas):
         self.scroll_fraction = 0
 
         self.inputs.subscribe(self.redraw)
+        self.diagnostics.subscribe(self.redraw)
         self.cursor.subscribe(self.on_cursor_move)
 
         self.context_menu = tk.Menu(self, tearoff=0)
@@ -416,10 +419,11 @@ class Grid(tk.Canvas):
                         else:
                             fg = "white"
                         bg = "#24b"
-                    elif (
-                        row == 4 and value == "1" and self.inputs.at(1, true_col) != "2"
-                    ):
-                        # Fastfall without a down input
+                    elif (row, true_col) in self.diagnostics.warnings:
+                        fg = "black"
+                        bg = "#e82"
+                    elif (row, true_col) in self.diagnostics.errors:
+                        fg = "black"
                         bg = "#d22"
                     elif true_col < 55:
                         # Inputs before the player has control
@@ -467,7 +471,7 @@ class Grid(tk.Canvas):
 
 
 class InputsView(tk.Frame):
-    def __init__(self, parent, inputs, cursor, undo_stack):
+    def __init__(self, parent, inputs, diagnostics, cursor, undo_stack):
         super().__init__(parent)
 
         for row, text in enumerate(
@@ -488,7 +492,7 @@ class InputsView(tk.Frame):
             label.grid(row=row, column=0, sticky="e")
 
         scrollbar = tk.Scrollbar(self, orient=tk.HORIZONTAL)
-        grid = Grid(self, scrollbar, inputs, cursor, undo_stack)
+        grid = Grid(self, scrollbar, inputs, diagnostics, cursor, undo_stack)
         scrollbar.config(command=grid.on_scroll)
 
         grid.grid(row=0, rowspan=GRID_ROWS + 1, column=1, sticky="ew")
@@ -508,7 +512,7 @@ if __name__ == "__main__":
             super().__init__()
 
             inputs = []
-            for _ in range(7):
+            for _ in range(8):
                 inputs.append(
                     "".join(
                         random.choice("0123456789ab")
@@ -516,13 +520,14 @@ if __name__ == "__main__":
                     )
                 )
             inputs = Inputs(inputs)
+            diagnostics = ReplayDiagnostics(inputs)
             cursor = Cursor(inputs)
             undo_stack = UndoStack(inputs, cursor)
 
             frame = tk.Frame()
             label = tk.Label(frame, text="HI")
             label.pack(fill=tk.BOTH, expand=1)
-            inputs_view = InputsView(frame, inputs, cursor, undo_stack)
+            inputs_view = InputsView(frame, inputs, diagnostics, cursor, undo_stack)
             inputs_view.pack(fill=tk.X)
             frame.pack(fill=tk.BOTH)
 
