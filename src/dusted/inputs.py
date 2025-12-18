@@ -1,3 +1,5 @@
+from collections.abc import Collection
+
 from dustmaker.replay import IntentStream
 
 from dusted.broadcaster import Broadcaster
@@ -40,20 +42,20 @@ TEXT_TO_INPUT = [
 class Inputs(Broadcaster):
     """Stores a rectangular grid of inputs."""
 
-    def __init__(self, inputs=None):
+    def __init__(self, inputs: Collection[Collection[str]] | None = None) -> None:
         super().__init__()
         self.length = 0
-        self.inputs = []
+        self.inputs: list[list[str]] = []
         if inputs is not None:
             self.set(inputs)
         else:
             self.reset()
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Return the number of frames that the inputs cover."""
         return self.length
 
-    def set_intents(self, intents: dict[IntentStream, list[int]]):
+    def set_intents(self, intents: dict[IntentStream, list[int]]) -> None:
         inputs = []
         for intent, input_to_text in enumerate(INPUT_TO_TEXT):
             inputs.append(
@@ -69,11 +71,11 @@ class Inputs(Broadcaster):
             ]
         return intents
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset to default inputs."""
         self.set(list(zip(*[DEFAULT_INPUTS for _ in range(55)])))
 
-    def set(self, inputs):
+    def set(self, inputs: Collection[Collection[str]]) -> None:
         """Load a (not necessarily rectangular) grid of inputs."""
         self.length = max(len(line) for line in inputs)
         self.inputs = []
@@ -82,7 +84,7 @@ class Inputs(Broadcaster):
             self.inputs.append(list(line) + [default] * (self.length - len(line)))
         self.broadcast()
 
-    def write(self, position, block):
+    def write(self, position: tuple[int, int], block: list[list[str]]) -> None:
         """Paste a block of inputs into the grid, validating intents."""
         top, left = position
         assert (
@@ -97,7 +99,7 @@ class Inputs(Broadcaster):
                     self.inputs[row][col] = char
         self.broadcast()
 
-    def fill(self, selection, char):
+    def fill(self, selection: tuple[int, int, int, int], char: str) -> None:
         """Fill a block of the grid with the same input."""
         top, left, bottom, right = selection
         assert 0 <= top <= bottom <= INTENT_COUNT and 0 <= left <= right
@@ -107,7 +109,7 @@ class Inputs(Broadcaster):
                     self.inputs[row][col] = char
         self.broadcast()
 
-    def clear(self, selection):
+    def clear(self, selection: tuple[int, int, int, int]) -> None:
         """Reset a block of the grid to the default inputs."""
         top, left, bottom, right = selection
         assert 0 <= top <= bottom < INTENT_COUNT and 0 <= left <= right
@@ -117,11 +119,11 @@ class Inputs(Broadcaster):
                 self.inputs[row][col] = char
         self.broadcast()
 
-    def get(self):
+    def get(self) -> list[list[str]]:
         """Return all inputs."""
         return self.inputs
 
-    def read(self, selection):
+    def read(self, selection: tuple[int, int, int, int]) -> list[list[str]]:
         """Return a block of the grid."""
         top, left, bottom, right = selection
         assert 0 <= top and bottom < INTENT_COUNT and 0 <= left <= right
@@ -129,12 +131,12 @@ class Inputs(Broadcaster):
             list(self.inputs[row][left : right + 1]) for row in range(top, bottom + 1)
         ]
 
-    def at(self, row, col):
+    def at(self, row: int, col: int) -> str:
         """Return a single cell of the grid."""
         assert 0 <= row < INTENT_COUNT and 0 <= col < self.length
         return self.inputs[row][col]
 
-    def delete_frames(self, start, count):
+    def delete_frames(self, start: int, count: int) -> None:
         """Delete some frames."""
         assert 0 <= start and count >= 0
         for row in range(0, INTENT_COUNT):
@@ -142,7 +144,7 @@ class Inputs(Broadcaster):
         self.length -= count
         self.broadcast()
 
-    def insert_frames(self, start, count):
+    def insert_frames(self, start: int, count: int) -> None:
         """Insert default-initialised frames."""
         assert 0 <= start <= self.length and count >= 0
         for row in range(0, INTENT_COUNT):
