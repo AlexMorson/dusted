@@ -321,3 +321,71 @@ class TestReplayDiagnostics(TestCase):
         )
         self.assertEqual(self.diagnostics.warnings, set())
         self.assertEqual(self.diagnostics.errors, {(3, 5)})
+
+    def test_valid_attacks(self):
+        """Test that valid attack intents do not error."""
+
+        valid_sequences = [
+            "a",
+            "0a0",
+            "00aabb0",
+            "0a900a9800a98700a98765432100",
+            "0a9aaa98aaa987aaa987654321a0",
+            "0a9b0a98b0a987b0a987654321b0",
+        ]
+        for intents in valid_sequences:
+            # Light intents.
+            self.inputs.set(["", "", "", "", "", intents, "", ""])
+            self.assertEqual(self.diagnostics.warnings, set())
+            self.assertEqual(self.diagnostics.errors, set())
+
+            # Heavy intents.
+            self.inputs.set(["", "", "", "", "", "", intents, ""])
+            self.assertEqual(self.diagnostics.warnings, set())
+            self.assertEqual(self.diagnostics.errors, set())
+
+    def test_invalid_attacks(self):
+        """Test that invalid attack intents error."""
+
+        invalid_sequences = [
+            ("b", 0),
+            ("9", 0),
+            ("8", 0),
+            ("7", 0),
+            ("1", 0),
+            ("a8", 1),
+            ("a7", 1),
+            ("a6", 1),
+            ("a1", 1),
+            ("0b", 1),
+            ("09", 1),
+            ("08", 1),
+            ("07", 1),
+            ("01", 1),
+            ("aba", 2),
+            ("ab9", 2),
+            ("ab8", 2),
+            ("ab7", 2),
+            ("ab1", 2),
+            ("a97", 2),
+            ("a96", 2),
+            ("a989", 3),
+            ("a986", 3),
+            ("a985", 3),
+            ("a9876545", 7),
+            ("a9876542", 7),
+            ("a9876541", 7),
+            ("a98765434", 8),
+            ("a98765431", 8),
+            ("a987654323", 9),
+        ]
+        for intents, frame in invalid_sequences:
+            # Light intents.
+            self.inputs.set(["", "", "", "", "", intents, "", ""])
+            self.assertEqual(self.diagnostics.warnings, set())
+            self.assertEqual(self.diagnostics.errors, {(5, frame)})
+
+            # Heavy intents.
+            self.inputs.set(["", "", "", "", "", "", intents, ""])
+            self.assertEqual(self.diagnostics.warnings, set())
+            self.assertEqual(self.diagnostics.errors, {(6, frame)})

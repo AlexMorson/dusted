@@ -7,6 +7,22 @@ from dusted.inputs import Inputs
 # a double tap dash.
 MAXIMUM_DOUBLE_TAP_DELAY = 14
 
+# The attack intents that are allowed to come next.
+VALID_NEXT_ATTACK_INTENT = {
+    "0": {"a", "0"},
+    "a": {"a", "b", "9", "0"},
+    "b": {"b", "0"},
+    "9": {"a", "b", "8", "0"},
+    "8": {"a", "b", "7", "0"},
+    "7": {"a", "b", "6", "0"},
+    "6": {"a", "b", "5", "0"},
+    "5": {"a", "b", "4", "0"},
+    "4": {"a", "b", "3", "0"},
+    "3": {"a", "b", "2", "0"},
+    "2": {"a", "b", "1", "0"},
+    "1": {"a", "b", "0"},
+}
+
 
 class Direction(Enum):
     LEFT = auto()
@@ -145,6 +161,12 @@ class ReplayDiagnostics(Broadcaster):
                 or taunt_pressed
             ):
                 first_tap = None
+
+            # Check for invalid attack intents.
+            if light not in VALID_NEXT_ATTACK_INTENT[prev_light]:
+                self._errors.add((5, frame))
+            if heavy not in VALID_NEXT_ATTACK_INTENT[prev_heavy]:
+                self._errors.add((6, frame))
 
             prev_x = x
             prev_y = y
