@@ -88,6 +88,11 @@ class App(tk.Tk):
             command=lambda: self.save_file(True),
             accelerator="Ctrl+Shift+S",
         )
+        file_menu.add_separator()
+        file_menu.add_command(
+            label="Export as nexus script...",
+            command=self.export_as_nexus_script,
+        )
 
         self.edit_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Edit", underline=0, menu=self.edit_menu)
@@ -278,6 +283,31 @@ class App(tk.Tk):
             self.undo_stack.clear()
 
         ReplayMetadataDialog(self, callback, creating=True)
+
+    def export_as_nexus_script(self) -> None:
+        """Export the current inputs as a nexus script."""
+
+        # Show a warning if there are oustanding diagnostics.
+        diagnostic_count = len(self.diagnostics.warnings) + len(self.diagnostics.errors)
+        if diagnostic_count > 0:
+            if not tkinter.messagebox.askokcancel(
+                message=f"""\
+This replay has {diagnostic_count} unresolved warning/error(s).
+The exported nexus script will be legal, but may not play back as expected.""",
+                icon="warning",
+            ):
+                return
+
+        filepath = tkinter.filedialog.asksaveasfilename(
+            defaultextension=".txt",
+            filetypes=[("nexus scripts", "*.txt")],
+            initialdir=os.path.join(config.dustforce_path, "tas"),
+            title="Export as nexus script",
+        )
+        if filepath:
+            nexus_script: str = self.diagnostics.nexus_script.serialize()
+            with open(filepath, "w", encoding="utf-8") as file:
+                file.write(nexus_script)
 
     def edit_replay_metadata(self):
         def callback(metadata: ReplayMetadata):

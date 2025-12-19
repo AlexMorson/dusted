@@ -389,3 +389,104 @@ class TestReplayDiagnostics(TestCase):
             self.inputs.set(["", "", "", "", "", "", intents, ""])
             self.assertEqual(self.diagnostics.warnings, set())
             self.assertEqual(self.diagnostics.errors, {(6, frame)})
+
+    def test_nexus_script(self):
+        """Test that nexus scripts are generated correctly."""
+
+        # Double tapped ledge cancel.
+        self.inputs.set(
+            """\
+22222
+12121
+00000
+00001
+00010
+00000
+00000
+00000""".splitlines()
+        )
+        self.assertEqual(
+            self.diagnostics.nexus_script.serialize(),
+            """\
+0100000000
+0101000000
+0100000000
+0102000000
+0100010000""",
+        )
+
+        # Double tapped dash with a simultaneous downdash.
+        self.inputs.set(
+            """\
+1212
+2222
+0000
+0001
+0001
+0000
+0000
+0000""".splitlines()
+        )
+        self.assertEqual(
+            self.diagnostics.nexus_script.serialize(),
+            """\
+0001000000
+0101000000
+0001000000
+0201010000""",
+        )
+
+        # Double tapped dash into grounded downdash.
+        self.inputs.set(
+            """\
+12121
+22222
+00000
+00011
+00001
+00000
+00000
+00000""".splitlines()
+        )
+        self.assertEqual(
+            self.diagnostics.nexus_script.serialize(),
+            """\
+0001000000
+0101000000
+0001000000
+0201000000
+0001010000""",
+        )
+
+        # Sanity check other intents.
+        self.inputs.set(
+            """\
+0211111111111111
+1102111211111111
+0000122000000000
+0000010000000000
+0000000100000000
+00000000aa98abb0
+000000000aa98abb
+0000000000122000""".splitlines()
+        )
+        self.assertEqual(
+            self.diagnostics.nexus_script.serialize(),
+            """\
+1000000000
+0100000000
+0010000000
+0001000000
+0000100000
+0000110000
+0000100000
+0001010000
+0000001000
+0000001100
+0000000101
+0000000001
+0000001001
+0000001100
+0000001100
+0000000100""",
+        )

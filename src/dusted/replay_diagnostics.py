@@ -2,6 +2,7 @@ from enum import Enum, auto
 
 from dusted.broadcaster import Broadcaster
 from dusted.inputs import Inputs
+from dusted.nexus_script import ButtonState, DirectionState, KeyStates, NexusScript
 
 # The number of frames after the initial tap that a second tap will register as
 # a double tap dash.
@@ -41,6 +42,8 @@ class ReplayDiagnostics(Broadcaster):
         self._warnings: set[tuple[int, int]] = set()
         self._errors: set[tuple[int, int]] = set()
 
+        self._nexus_script = NexusScript(frames=[])
+
         self._inputs.subscribe(self._recalculate)
         self._recalculate()
 
@@ -52,11 +55,17 @@ class ReplayDiagnostics(Broadcaster):
     def errors(self) -> set[tuple[int, int]]:
         return self._errors
 
+    @property
+    def nexus_script(self) -> NexusScript:
+        return self._nexus_script
+
     def _recalculate(self) -> None:
         """Recalculate the diagnostics."""
 
         self._warnings.clear()
         self._errors.clear()
+
+        nexus_script_frames: list[KeyStates] = []
 
         # Frame and direction of the first tap of a potential double tap dash.
         first_tap: tuple[int, Direction] | None = None
@@ -168,6 +177,43 @@ class ReplayDiagnostics(Broadcaster):
             if heavy not in VALID_NEXT_ATTACK_INTENT[prev_heavy]:
                 self._errors.add((6, frame))
 
+            nexus_script_frames.append(
+                KeyStates(
+                    left=(
+                        DirectionState.DOUBLE_TAPPED
+                        if double_tap is Direction.LEFT
+                        else (
+                            DirectionState.HELD if x == "0" else DirectionState.RELEASED
+                        )
+                    ),
+                    right=(
+                        DirectionState.DOUBLE_TAPPED
+                        if double_tap is Direction.RIGHT
+                        else (
+                            DirectionState.HELD if x == "2" else DirectionState.RELEASED
+                        )
+                    ),
+                    up=(DirectionState.HELD if y == "0" else DirectionState.RELEASED),
+                    down=(
+                        DirectionState.DOUBLE_TAPPED
+                        if double_tap is Direction.DOWN
+                        else (
+                            DirectionState.HELD if y == "2" else DirectionState.RELEASED
+                        )
+                    ),
+                    jump=ButtonState.HELD if jump != "0" else ButtonState.RELEASED,
+                    dash=(
+                        ButtonState.HELD
+                        if (dash != "0" or fall != "0")
+                        else ButtonState.RELEASED
+                    ),
+                    light=ButtonState.HELD if light in "ab" else ButtonState.RELEASED,
+                    heavy=ButtonState.HELD if heavy in "ab" else ButtonState.RELEASED,
+                    escape=ButtonState.RELEASED,
+                    taunt=ButtonState.HELD if taunt != "0" else ButtonState.RELEASED,
+                )
+            )
+
             prev_x = x
             prev_y = y
             prev_jump = jump
@@ -176,5 +222,7 @@ class ReplayDiagnostics(Broadcaster):
             prev_light = light
             prev_heavy = heavy
             prev_taunt = taunt
+
+        self._nexus_script = NexusScript(nexus_script_frames)
 
         self.broadcast()
