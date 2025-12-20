@@ -161,6 +161,11 @@ class ReplayDiagnostics(Broadcaster):
                     # down intent.
                     self._errors.add((4, frame))
 
+                if dash != "0" and fall == "0" and y == "2":
+                    # This is a non double tapped dash with down held, which
+                    # should result in a fall input, but hasn't.
+                    self._errors.add((4, frame))
+
             # Pressing any other key interrupts a double tap.
             if (
                 heavy_pressed

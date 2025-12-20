@@ -322,6 +322,40 @@ class TestReplayDiagnostics(TestCase):
         self.assertEqual(self.diagnostics.warnings, set())
         self.assertEqual(self.diagnostics.errors, {(3, 5)})
 
+    def test_down_dash_without_fall(self):
+        """Test that holding down and dashing without a fall intent is invalid."""
+
+        # Non double tapped dash means the dash key is pressed, so there should
+        # be a fall intent.
+        self.inputs.set(
+            """\
+1
+2
+0
+1
+0
+0
+0
+0""".splitlines()
+        )
+        self.assertEqual(self.diagnostics.warnings, set())
+        self.assertEqual(self.diagnostics.errors, {(4, 0)})
+
+        # But a double tapped dash with down held is fine.
+        self.inputs.set(
+            """\
+1212
+2222
+0000
+0001
+0000
+0000
+0000
+0000""".splitlines()
+        )
+        self.assertEqual(self.diagnostics.warnings, set())
+        self.assertEqual(self.diagnostics.errors, set())
+
     def test_valid_attacks(self):
         """Test that valid attack intents do not error."""
 
