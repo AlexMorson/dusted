@@ -1,3 +1,5 @@
+import bisect
+import itertools
 import logging
 import os
 import queue
@@ -11,6 +13,7 @@ from dustmaker.replay import Character, PlayerData, Replay
 from dusted import dustforce, utils
 from dusted.config import config
 from dusted.cursor import Cursor
+from dusted.diagnostics_summary_view import DiagnosticsSummaryView
 from dusted.dialog import SimpleDialog
 from dusted.inputs import Inputs
 from dusted.inputs_view import InputsView
@@ -51,6 +54,8 @@ class App(tk.Tk):
         self.diagnostics = ReplayDiagnostics(self.inputs)
         self.cursor = Cursor(self.inputs)
         self.undo_stack = UndoStack(self.inputs, self.cursor)
+
+        self.diagnostics.subscribe(self.on_diagnostics_change)
         self.undo_stack.subscribe(self.on_undo_stack_change)
 
         self.write_config_timer = None
@@ -115,6 +120,18 @@ class App(tk.Tk):
             command=lambda: JumpToFrameDialog(self, self.cursor),
             accelerator="Ctrl+G",
         )
+        self.edit_menu.add_command(
+            label="Jump to next error",
+            command=self.jump_to_next_diagnostic,
+            state=tk.DISABLED,
+            accelerator="F2",
+        )
+        self.edit_menu.add_command(
+            label="Jump to previous error",
+            command=self.jump_to_previous_diagnostic,
+            state=tk.DISABLED,
+            accelerator="Shift+F2",
+        )
         self.edit_menu.add_separator()
         self.edit_menu.add_command(
             label="Replay metadata...",
@@ -146,17 +163,24 @@ class App(tk.Tk):
         self.config(menu=menu_bar)
 
         # Widgets
-        buttons = tk.Frame(self)
-        button1 = tk.Button(
-            buttons,
+        toolbar = tk.Frame(self)
+        watch_button = tk.Button(
+            toolbar,
             text="Watch",
             command=self.watch,
         )
-        button2 = tk.Button(
-            buttons,
+        load_and_watch_button = tk.Button(
+            toolbar,
             text="Load State and Watch",
             command=self.load_state_and_watch,
         )
+        diagnostics_summary = DiagnosticsSummaryView(
+            toolbar,
+            self.diagnostics,
+            command_prev=self.jump_to_previous_diagnostic,
+            command_next=self.jump_to_next_diagnostic,
+        )
+
         self.level_view = LevelView(self, self.level, self.cursor)
         inputs_view = InputsView(
             self,
@@ -167,10 +191,11 @@ class App(tk.Tk):
         )
 
         # Layout
-        button1.pack(side=tk.LEFT)
-        button2.pack(side=tk.LEFT)
+        watch_button.pack(side=tk.LEFT)
+        load_and_watch_button.pack(side=tk.LEFT)
+        diagnostics_summary.pack(side=tk.RIGHT)
 
-        buttons.grid(row=0, sticky="W")
+        toolbar.grid(row=0, sticky="EW")
         self.level_view.grid(row=1, sticky="NSEW")
         inputs_view.grid(row=2, sticky="EW")
 
@@ -188,6 +213,8 @@ class App(tk.Tk):
         self.bind("<Control-KeyPress-o>", lambda e: self.open_file())
         self.bind("<Control-KeyPress-s>", lambda e: self.save_file())
         self.bind("<Control-Shift-KeyPress-S>", lambda e: self.save_file(True))
+        self.bind("<F2>", lambda e: self.jump_to_next_diagnostic())
+        self.bind("<Shift-F2>", lambda e: self.jump_to_previous_diagnostic())
         self.bind("<F5>", lambda e: self.watch())
         self.bind("<F6>", lambda e: self.load_state_and_watch())
 
@@ -309,6 +336,52 @@ The exported nexus script will be legal, but may not play back as expected.""",
             with open(filepath, "w", encoding="utf-8") as file:
                 file.write(nexus_script)
 
+    def jump_to_previous_diagnostic(self) -> None:
+        """Move the cursor to the next diagnostic."""
+
+        # Sort diagnostics by their column then row.
+        ordered_diagnostics = sorted(
+            itertools.chain(self.diagnostics.warnings, self.diagnostics.errors),
+            key=lambda row_col: (row_col[1], row_col[0]),
+        )
+        if not ordered_diagnostics:
+            return
+
+        # Find the index of the previous diagnostic.
+        current_diagnostic_index = bisect.bisect_left(
+            ordered_diagnostics,
+            (self.cursor.current_col, self.cursor.current_row),
+            key=lambda row_col: (row_col[1], row_col[0]),
+        )
+        if current_diagnostic_index == 0:
+            previous_diagnostic_index = len(ordered_diagnostics) - 1
+        else:
+            previous_diagnostic_index = current_diagnostic_index - 1
+
+        self.cursor.set(*ordered_diagnostics[previous_diagnostic_index])
+
+    def jump_to_next_diagnostic(self) -> None:
+        """Move the cursor to the previous diagnostic."""
+
+        # Sort diagnostics by their column then row.
+        ordered_diagnostics = sorted(
+            itertools.chain(self.diagnostics.warnings, self.diagnostics.errors),
+            key=lambda row_col: (row_col[1], row_col[0]),
+        )
+        if not ordered_diagnostics:
+            return
+
+        # Find the index of the next diagnostic.
+        next_diagnostic_index = bisect.bisect_right(
+            ordered_diagnostics,
+            (self.cursor.current_col, self.cursor.current_row),
+            key=lambda row_col: (row_col[1], row_col[0]),
+        )
+        if next_diagnostic_index == len(ordered_diagnostics):
+            next_diagnostic_index = 0
+
+        self.cursor.set(*ordered_diagnostics[next_diagnostic_index])
+
     def edit_replay_metadata(self):
         def callback(metadata: ReplayMetadata):
             self.level.set(metadata.level)
@@ -342,6 +415,18 @@ The exported nexus script will be legal, but may not play back as expected.""",
         if new_path and config.dustforce_path != new_path:
             config.dustforce_path = new_path
             self.write_config_soon()
+
+    def on_diagnostics_change(self) -> None:
+        """Called when the diagnostics change."""
+
+        # Enable or disable the jump to next/previous diagnostic menu items.
+        diagnostics_state = (
+            tk.NORMAL
+            if self.diagnostics.errors or self.diagnostics.warnings
+            else tk.DISABLED
+        )
+        self.edit_menu.entryconfig(4, state=diagnostics_state)
+        self.edit_menu.entryconfig(5, state=diagnostics_state)
 
     def on_undo_stack_change(self):
         undo_state = tk.NORMAL if self.undo_stack.can_undo else tk.DISABLED
