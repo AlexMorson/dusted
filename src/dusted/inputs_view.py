@@ -3,15 +3,6 @@ from __future__ import annotations
 import tkinter as tk
 from typing import Any
 
-from dusted.commands import (
-    ClearInputsCommand,
-    Command,
-    CommandSequence,
-    DeleteFramesCommand,
-    FillInputsCommand,
-    InsertFramesCommand,
-    SetInputsCommand,
-)
 from dusted.cursor import Cursor
 from dusted.dialog import SimpleDialog
 from dusted.inputs import DEFAULT_INPUTS, INTENT_COUNT, Inputs
@@ -272,32 +263,27 @@ class Grid(tk.Canvas):
             0, self._cursor.selection_left + len(block[0]) - self._inputs.length
         )
 
-        self._undo_stack.execute(
-            CommandSequence(
-                "Paste inputs",
-                InsertFramesCommand(self._inputs.length, extra_frames),
-                SetInputsCommand(self._cursor.selection_start, block),
-            )
-        )
+        with self._undo_stack.execute("Paste inputs"):
+            self._inputs.insert_frames(self._inputs.length, extra_frames)
+            self._inputs.write(self._cursor.selection_start, block)
 
     def clear_selection(self) -> None:
-        self._undo_stack.execute(ClearInputsCommand(self._cursor.selection))
+        with self._undo_stack.execute("Clear selection"):
+            self._inputs.clear(self._cursor.selection)
 
     def insert_frames(self, count: int) -> None:
-        self._undo_stack.execute(
-            InsertFramesCommand(self._cursor.selection_left, count)
-        )
+        with self._undo_stack.execute(f"Insert {count} frame(s)"):
+            self._inputs.insert_frames(self._cursor.selection_left, count)
 
     def delete_frames(self) -> None:
         # Protect against deleting the "frame-after-last"
-        width = self._cursor.selection_width
+        count = self._cursor.selection_width
         if self._cursor.selection_right == len(self._inputs):
-            width -= 1
-        if width == 0:
+            count -= 1
+        if count == 0:
             return
-        self._undo_stack.execute(
-            DeleteFramesCommand(self._cursor.selection_left, width)
-        )
+        with self._undo_stack.execute(f"Delete {count} frame(s)"):
+            self._inputs.delete_frames(self._cursor.selection_left, count)
 
     def _on_click(self, event: tk.Event, keep_selection: bool = False) -> None:
         self.focus_set()
@@ -358,22 +344,12 @@ class Grid(tk.Canvas):
         if not event.char or modifier_held(event.state):
             return
 
-        command: Command
-        if fill := self._cursor.has_selection:
-            command = FillInputsCommand(self._cursor.selection, event.char.lower())
-        else:
-            command = SetInputsCommand(self._cursor.position, [[event.char.lower()]])
-
-        if self._cursor.selection_right == len(self._inputs):
-            self._undo_stack.execute(
-                CommandSequence(
-                    "Fill selection" if fill else "Set inputs",
-                    InsertFramesCommand(self._cursor.current_col, 1),
-                    command,
-                )
-            )
-        else:
-            self._undo_stack.execute(command)
+        with self._undo_stack.execute(
+            "Fill selection" if self._cursor.has_selection else "Set inputs"
+        ):
+            if self._cursor.selection_right == len(self._inputs):
+                self._inputs.insert_frames(self._cursor.current_col, 1)
+            self._inputs.fill(self._cursor.selection, event.char.lower())
 
     def _on_scroll(self, command, *args):
         if command == tk.MOVETO:
