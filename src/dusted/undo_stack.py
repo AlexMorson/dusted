@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from dusted.broadcaster import Broadcaster
 from dusted.cursor import Cursor
-from dusted.inputs import Inputs
+from dusted.inputs import Inputs, Intents
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,7 +28,7 @@ class Action:
 class Snapshot:
     """A snapshot of the application state."""
 
-    inputs: tuple[tuple[str, ...], ...]
+    inputs: tuple[Intents, ...]
     cursor: tuple[int, int, int, int]
 
 
@@ -52,7 +52,7 @@ class UndoStack(Broadcaster):
 
     def _snapshot(self) -> Snapshot:
         return Snapshot(
-            inputs=tuple(tuple(row) for row in self._inputs.get()),
+            inputs=tuple(intents for intents in self._inputs),
             cursor=self._cursor.selection,
         )
 
@@ -110,7 +110,7 @@ class UndoStack(Broadcaster):
         self._index -= 1
 
         snapshot = self._stack[self._index].before
-        self._inputs.set(snapshot.inputs)
+        self._inputs[:] = snapshot.inputs
         self._cursor.select(snapshot.cursor)
 
         self.broadcast()
@@ -120,7 +120,7 @@ class UndoStack(Broadcaster):
             return
 
         snapshot = self._stack[self._index].after
-        self._inputs.set(snapshot.inputs)
+        self._inputs[:] = snapshot.inputs
         self._cursor.select(snapshot.cursor)
 
         self._index += 1

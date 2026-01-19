@@ -1,11 +1,11 @@
 from dusted.broadcaster import Broadcaster
-from dusted.inputs import INTENT_COUNT, Inputs
+from dusted.inputs_grid import GRID_INTENTS, InputsGrid
 
 
 class Cursor(Broadcaster):
     """Manages the cursor and current selection."""
 
-    def __init__(self, inputs: Inputs) -> None:
+    def __init__(self, inputs: InputsGrid) -> None:
         super().__init__()
         self.inputs = inputs
 
@@ -22,7 +22,7 @@ class Cursor(Broadcaster):
         )
 
     def set(self, row: int, col: int, keep_selection: bool = False) -> None:
-        new_row = max(0, min(INTENT_COUNT - 1, row))
+        new_row = max(0, min(len(GRID_INTENTS) - 1, row))
         new_col = max(0, min(len(self.inputs), col))
 
         if new_row == self.current_row and new_col == self.current_col:

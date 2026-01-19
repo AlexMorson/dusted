@@ -5,11 +5,15 @@ from typing import Any
 
 from dusted.cursor import Cursor
 from dusted.dialog import SimpleDialog
-from dusted.inputs import DEFAULT_INPUTS, INTENT_COUNT, Inputs
+from dusted.inputs import Inputs
+from dusted.inputs_grid import InputsGrid
 from dusted.jump_to_frame import JumpToFrameDialog
 from dusted.replay_diagnostics import ReplayDiagnostics
 from dusted.undo_stack import UndoStack
 from dusted.utils import modifier_held
+
+DEFAULT_INPUTS = "11000000"
+INTENT_COUNT = 8
 
 GRID_ROWS = INTENT_COUNT + 1
 GRID_SIZE = 20
@@ -94,7 +98,7 @@ class Grid(tk.Canvas):
         )
 
         self._scrollbar = scrollbar
-        self._inputs = inputs
+        self._inputs = InputsGrid(inputs)
         self._diagnostics = diagnostics
         self._cursor = cursor
         self._undo_stack = undo_stack
@@ -260,11 +264,11 @@ class Grid(tk.Canvas):
 
         # Check if the input grid needs to be resized
         extra_frames = max(
-            0, self._cursor.selection_left + len(block[0]) - self._inputs.length
+            0, self._cursor.selection_left + len(block[0]) - len(self._inputs)
         )
 
         with self._undo_stack.execute("Paste inputs"):
-            self._inputs.insert_frames(self._inputs.length, extra_frames)
+            self._inputs.insert_frames(len(self._inputs), extra_frames)
             self._inputs.write(self._cursor.selection_start, block)
 
     def clear_selection(self) -> None:
