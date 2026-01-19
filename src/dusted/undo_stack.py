@@ -62,6 +62,9 @@ class UndoStack(Broadcaster):
         yield
         after = self._snapshot()
 
+        if before == after:
+            return
+
         del self._stack[self._index :]
         if self._unmodified_index > self._index:
             self._unmodified_index = -1
