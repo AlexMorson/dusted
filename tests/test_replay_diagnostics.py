@@ -1,13 +1,15 @@
 from unittest import TestCase
 
 from dusted.inputs import Inputs
+from dusted.inputs_grid import InputsGrid
 from dusted.replay_diagnostics import ReplayDiagnostics
 
 
 class TestReplayDiagnostics(TestCase):
     def setUp(self) -> None:
-        self.inputs = Inputs()
-        self.diagnostics = ReplayDiagnostics(self.inputs)
+        inputs = Inputs()
+        self.inputs = InputsGrid(inputs)
+        self.diagnostics = ReplayDiagnostics(inputs)
 
     def test_error_fall_without_down(self):
         """Test that a fall intent without down being held errors."""

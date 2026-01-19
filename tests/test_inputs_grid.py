@@ -1,30 +1,23 @@
 from unittest import TestCase, mock
 
-from dusted.inputs import Inputs
+from dusted.inputs import Inputs, Intents
+from dusted.inputs_grid import InputsGrid
 
 
-class TestInputs(TestCase):
+class TestInputsGrid(TestCase):
     def setUp(self):
-        self.default = Inputs()
-        self.custom = Inputs(
-            ["".join(str((row + col) % 2) for col in range(100)) for row in range(8)]
-        )
+        inputs = Inputs()
+        inputs[:] = [
+            Intents(-1, 0, 0, 1, 0, 1, 0, 1),
+            Intents(0, -1, 1, 0, 1, 0, 1, 0),
+        ] * 50
+        self.custom = InputsGrid(inputs)
 
         self.callback = mock.Mock()
-        self.default.subscribe(self.callback)
-        self.custom.subscribe(self.callback)
+        inputs.subscribe(self.callback)
 
     def test_length(self):
-        self.assertEqual(len(self.default), 55)
         self.assertEqual(len(self.custom), 100)
-
-    def test_get(self):
-        self.assertEqual(self.default.get(), [list(c * 55) for c in "11000000"])
-
-    def test_reset(self):
-        self.custom.reset()
-        self.callback.assert_called()
-        self.assertEqual(self.custom.get(), [list(c * 55) for c in "11000000"])
 
     def test_insert_frames(self):
         self.custom.insert_frames(1, 2)
@@ -118,5 +111,10 @@ class TestInputs(TestCase):
         )
 
     def test_at(self):
-        self.assertEqual(self.default.at(2, 1), "0")
-        self.assertEqual(self.default.at(1, 2), "1")
+        self.assertEqual(self.custom.at(0, 0), "0")
+        self.assertEqual(self.custom.at(1, 0), "1")
+        self.assertEqual(self.custom.at(0, 1), "1")
+        self.assertEqual(self.custom.at(1, 1), "0")
+        self.assertEqual(self.custom.at(0, 50), "0")
+        with self.assertRaises(AssertionError):
+            self.custom.at(50, 0)

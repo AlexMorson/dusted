@@ -10,18 +10,18 @@ MAXIMUM_DOUBLE_TAP_DELAY = 14
 
 # The attack intents that are allowed to come next.
 VALID_NEXT_ATTACK_INTENT = {
-    "0": {"a", "0"},
-    "a": {"a", "b", "9", "0"},
-    "b": {"b", "0"},
-    "9": {"a", "b", "8", "0"},
-    "8": {"a", "b", "7", "0"},
-    "7": {"a", "b", "6", "0"},
-    "6": {"a", "b", "5", "0"},
-    "5": {"a", "b", "4", "0"},
-    "4": {"a", "b", "3", "0"},
-    "3": {"a", "b", "2", "0"},
-    "2": {"a", "b", "1", "0"},
-    "1": {"a", "b", "0"},
+    0: {10, 0},
+    10: {10, 11, 9, 0},
+    11: {11, 0},
+    9: {10, 11, 8, 0},
+    8: {10, 11, 7, 0},
+    7: {10, 11, 6, 0},
+    6: {10, 11, 5, 0},
+    5: {10, 11, 4, 0},
+    4: {10, 11, 3, 0},
+    3: {10, 11, 2, 0},
+    2: {10, 11, 1, 0},
+    1: {10, 11, 0},
 }
 
 
@@ -70,29 +70,29 @@ class ReplayDiagnostics(Broadcaster):
         # Frame and direction of the first tap of a potential double tap dash.
         first_tap: tuple[int, Direction] | None = None
 
-        prev_x = "1"
-        prev_y = "1"
-        prev_jump = "0"
-        prev_dash = "0"
-        prev_fall = "0"
-        prev_light = "0"
-        prev_heavy = "0"
-        prev_taunt = "0"
+        prev_x = 0
+        prev_y = 0
+        prev_jump = 0
+        prev_dash = 0
+        prev_fall = 0
+        prev_light = 0
+        prev_heavy = 0
+        prev_taunt = 0
 
-        for frame in range(len(self._inputs)):
-            x = self._inputs.at(0, frame)
-            y = self._inputs.at(1, frame)
-            jump = self._inputs.at(2, frame)
-            dash = self._inputs.at(3, frame)
-            fall = self._inputs.at(4, frame)
-            light = self._inputs.at(5, frame)
-            heavy = self._inputs.at(6, frame)
-            taunt = self._inputs.at(7, frame)
+        for frame, intents in enumerate(self._inputs):
+            x = intents.x
+            y = intents.y
+            jump = intents.jump
+            dash = intents.dash
+            fall = intents.fall
+            light = intents.light
+            heavy = intents.heavy
+            taunt = intents.taunt
 
-            left_pressed = prev_x != "0" and x == "0"
-            right_pressed = prev_x != "2" and x == "2"
-            up_pressed = prev_y != "0" and y == "0"
-            down_pressed = prev_y != "2" and y == "2"
+            left_pressed = prev_x != -1 and x == -1
+            right_pressed = prev_x != 1 and x == 1
+            up_pressed = prev_y != -1 and y == -1
+            down_pressed = prev_y != 1 and y == 1
 
             double_tap: Direction | None = None
 
@@ -120,10 +120,10 @@ class ReplayDiagnostics(Broadcaster):
                         first_tap = frame, direction
 
             if double_tap in (Direction.LEFT, Direction.RIGHT):
-                if dash != "0":
+                if dash != 0:
                     # This dash was caused by a double tap, and (probably) not
                     # by pressing the dash key.
-                    dash = "0"
+                    dash = 0
                 else:
                     # It looks like there should be a dash intent on this
                     # frame. This is only a warning because it is possible to
@@ -132,10 +132,10 @@ class ReplayDiagnostics(Broadcaster):
                     self._warnings.add((3, frame))
 
             if double_tap is Direction.DOWN:
-                if fall != "0":
+                if fall != 0:
                     # This fall was caused by a double tap, and (probably) not
                     # by pressing the dash key.
-                    fall = "0"
+                    fall = 0
                 else:
                     # It looks like there should be a fall intent on this
                     # frame. This is only a warning because it is possible to
@@ -143,25 +143,25 @@ class ReplayDiagnostics(Broadcaster):
                     # both up and down at the same time.
                     self._warnings.add((4, frame))
 
-            jump_pressed = prev_jump == "0" and jump != "0"
+            jump_pressed = prev_jump == 0 and jump != 0
             dash_pressed = (
-                prev_dash == "0" and prev_fall == "0" and (dash != "0" or fall != "0")
+                prev_dash == 0 and prev_fall == 0 and (dash != 0 or fall != 0)
             )
-            light_pressed = prev_light == "0" and light != "0"
-            heavy_pressed = prev_heavy == "0" and heavy != "0"
-            taunt_pressed = prev_taunt == "0" and taunt != "0"
+            light_pressed = prev_light == 0 and light != 0
+            heavy_pressed = prev_heavy == 0 and heavy != 0
+            taunt_pressed = prev_taunt == 0 and taunt != 0
 
             if double_tap is None:
-                if dash != "0" and not dash_pressed:
+                if dash != 0 and not dash_pressed:
                     # This is a non double tapped dash without a dash press.
                     self._errors.add((3, frame))
 
-                if fall != "0" and (not dash_pressed or y != "2"):
+                if fall != 0 and (not dash_pressed or y != 1):
                     # This is a non double tapped fall without a dash press or
                     # down intent.
                     self._errors.add((4, frame))
 
-                if dash != "0" and fall == "0" and y == "2":
+                if dash != 0 and fall == 0 and y == 1:
                     # This is a non double tapped dash with down held, which
                     # should result in a fall input, but hasn't.
                     self._errors.add((4, frame))
@@ -188,34 +188,38 @@ class ReplayDiagnostics(Broadcaster):
                         DirectionState.DOUBLE_TAPPED
                         if double_tap is Direction.LEFT
                         else (
-                            DirectionState.HELD if x == "0" else DirectionState.RELEASED
+                            DirectionState.HELD if x == -1 else DirectionState.RELEASED
                         )
                     ),
                     right=(
                         DirectionState.DOUBLE_TAPPED
                         if double_tap is Direction.RIGHT
                         else (
-                            DirectionState.HELD if x == "2" else DirectionState.RELEASED
+                            DirectionState.HELD if x == 1 else DirectionState.RELEASED
                         )
                     ),
-                    up=(DirectionState.HELD if y == "0" else DirectionState.RELEASED),
+                    up=(DirectionState.HELD if y == -1 else DirectionState.RELEASED),
                     down=(
                         DirectionState.DOUBLE_TAPPED
                         if double_tap is Direction.DOWN
                         else (
-                            DirectionState.HELD if y == "2" else DirectionState.RELEASED
+                            DirectionState.HELD if y == 1 else DirectionState.RELEASED
                         )
                     ),
-                    jump=ButtonState.HELD if jump != "0" else ButtonState.RELEASED,
+                    jump=ButtonState.HELD if jump != 0 else ButtonState.RELEASED,
                     dash=(
                         ButtonState.HELD
-                        if (dash != "0" or fall != "0")
+                        if (dash != 0 or fall != 0)
                         else ButtonState.RELEASED
                     ),
-                    light=ButtonState.HELD if light in "ab" else ButtonState.RELEASED,
-                    heavy=ButtonState.HELD if heavy in "ab" else ButtonState.RELEASED,
+                    light=ButtonState.HELD
+                    if light in (10, 11)
+                    else ButtonState.RELEASED,
+                    heavy=ButtonState.HELD
+                    if heavy in (10, 11)
+                    else ButtonState.RELEASED,
                     escape=ButtonState.RELEASED,
-                    taunt=ButtonState.HELD if taunt != "0" else ButtonState.RELEASED,
+                    taunt=ButtonState.HELD if taunt != 0 else ButtonState.RELEASED,
                 )
             )
 

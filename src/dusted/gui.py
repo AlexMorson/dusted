@@ -8,14 +8,15 @@ import tkinter as tk
 import tkinter.filedialog
 import tkinter.messagebox
 
-from dustmaker.replay import Character, PlayerData, Replay
+from dustmaker.replay import Character, IntentStream, PlayerData, Replay
 
 from dusted import dustforce, utils
 from dusted.config import config
 from dusted.cursor import Cursor
 from dusted.diagnostics_summary_view import DiagnosticsSummaryView
 from dusted.dialog import SimpleDialog
-from dusted.inputs import Inputs
+from dusted.inputs import Inputs, Intents
+from dusted.inputs_grid import InputsGrid
 from dusted.inputs_view import InputsView
 from dusted.jump_to_frame import JumpToFrameDialog
 from dusted.level import Level
@@ -50,9 +51,9 @@ class App(tk.Tk):
 
         self.level = Level("downhill")
         self.character = Character.DUSTMAN
-        self.inputs = Inputs()
+        self.inputs = Inputs([Intents.default()] * 55)
         self.diagnostics = ReplayDiagnostics(self.inputs)
-        self.cursor = Cursor(self.inputs)
+        self.cursor = Cursor(InputsGrid(self.inputs))
         self.undo_stack = UndoStack(self.inputs, self.cursor)
 
         self.diagnostics.subscribe(self.on_diagnostics_change)
@@ -290,10 +291,20 @@ class App(tk.Tk):
         elif not self.undo_stack.is_modified:
             return True
 
+        intent_streams = {
+            IntentStream.X: [intents.x for intents in self.inputs],
+            IntentStream.Y: [intents.y for intents in self.inputs],
+            IntentStream.JUMP: [intents.jump for intents in self.inputs],
+            IntentStream.DASH: [intents.dash for intents in self.inputs],
+            IntentStream.FALL: [intents.fall for intents in self.inputs],
+            IntentStream.LIGHT: [intents.light for intents in self.inputs],
+            IntentStream.HEAVY: [intents.heavy for intents in self.inputs],
+            IntentStream.TAUNT: [intents.taunt for intents in self.inputs],
+        }
         replay = Replay(
             username=b"TAS",
             level=self.level.get().encode(),
-            players=[PlayerData(self.character, self.inputs.get_intents())],
+            players=[PlayerData(self.character, intent_streams)],
         )
 
         utils.write_replay_to_file(self.file, replay)
@@ -306,7 +317,7 @@ class App(tk.Tk):
             self.file = None
             self.level.set(metadata.level)
             self.character = metadata.character
-            self.inputs.reset()
+            self.inputs[:] = [Intents.default()] * 55
             self.undo_stack.clear()
 
         ReplayMetadataDialog(self, callback, creating=True)
@@ -404,7 +415,24 @@ The exported nexus script will be legal, but may not play back as expected.""",
         self.file = filepath
         self.level.set(replay.level.decode())
         self.character = replay.players[0].character
-        self.inputs.set_intents(replay.players[0].intents)
+
+        inputs: list[Intents] = []
+        player_data = replay.players[0]
+        frame_count = max(len(stream) for stream in player_data.intents.values())
+        for frame in range(frame_count):
+            inputs.append(
+                Intents(
+                    x=player_data.get_intent_value(IntentStream.X, frame),
+                    y=player_data.get_intent_value(IntentStream.Y, frame),
+                    jump=player_data.get_intent_value(IntentStream.JUMP, frame),
+                    dash=player_data.get_intent_value(IntentStream.DASH, frame),
+                    fall=player_data.get_intent_value(IntentStream.FALL, frame),
+                    light=player_data.get_intent_value(IntentStream.LIGHT, frame),
+                    heavy=player_data.get_intent_value(IntentStream.HEAVY, frame),
+                    taunt=player_data.get_intent_value(IntentStream.TAUNT, frame),
+                )
+            )
+        self.inputs[:] = inputs
 
         self.undo_stack.clear()
         if filepath is not None:

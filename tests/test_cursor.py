@@ -1,13 +1,15 @@
 from unittest import TestCase, mock
 
 from dusted.cursor import Cursor
-from dusted.inputs import Inputs
+from dusted.inputs import Inputs, Intents
+from dusted.inputs_grid import InputsGrid
 
 
 class TestCursor(TestCase):
     def setUp(self):
         inputs = Inputs()
-        self.cursor = Cursor(inputs)
+        inputs[:] = [Intents.default()] * 55
+        self.cursor = Cursor(InputsGrid(inputs))
 
         self.callback = mock.Mock()
         self.cursor.subscribe(self.callback)
