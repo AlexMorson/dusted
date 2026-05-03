@@ -21,6 +21,7 @@ from dusted.inputs_view import InputsView
 from dusted.jump_to_frame import JumpToFrameDialog
 from dusted.level import Level
 from dusted.level_view import LevelView
+from dusted.publish_replay import PublishReplayDialog
 from dusted.replay_diagnostics import ReplayDiagnostics
 from dusted.replay_metadata import ReplayMetadata, ReplayMetadataDialog
 from dusted.undo_stack import UndoStack
@@ -47,7 +48,9 @@ class App(tk.Tk):
         super().__init__()
 
         # Log exceptions
-        self.report_callback_exception = lambda *args: log.error("", exc_info=args)
+        self.report_callback_exception = lambda *args: log.exception(
+            "Uncaught exception"
+        )
 
         self.level = Level("downhill")
         self.character = Character.DUSTMAN
@@ -98,6 +101,10 @@ class App(tk.Tk):
         file_menu.add_command(
             label="Export as nexus script...",
             command=self.export_as_nexus_script,
+        )
+        file_menu.add_command(
+            label="Publish to dustkid...",
+            command=self.publish_to_dustkid,
         )
 
         self.edit_menu = tk.Menu(menu_bar, tearoff=0)
@@ -279,17 +286,8 @@ class App(tk.Tk):
         if self.save_file():
             dustforce.watch_replay_load_state(self.file)
 
-    def save_file(self, save_as: bool = False):
-        if not self.file or save_as:
-            self.file = tkinter.filedialog.asksaveasfilename(
-                defaultextension=".dfreplay",
-                filetypes=[("replay files", "*.dfreplay")],
-                title="Save replay",
-            )
-            if not self.file:
-                return False
-        elif not self.undo_stack.is_modified:
-            return True
+    def _current_replay(self) -> Replay:
+        """Return a replay instance created from the current application state."""
 
         intent_streams = {
             IntentStream.X: [intents.x for intents in self.inputs],
@@ -301,12 +299,31 @@ class App(tk.Tk):
             IntentStream.HEAVY: [intents.heavy for intents in self.inputs],
             IntentStream.TAUNT: [intents.taunt for intents in self.inputs],
         }
-        replay = Replay(
+        return Replay(
             username=b"TAS",
             level=self.level.get().encode(),
             players=[PlayerData(self.character, intent_streams)],
         )
 
+    def save_file(self, save_as: bool = False) -> bool:
+        """
+        Save the current replay to a file.
+
+        :return: True if the file was saved.
+        """
+
+        if not self.file or save_as:
+            self.file = tkinter.filedialog.asksaveasfilename(
+                defaultextension=".dfreplay",
+                filetypes=[("replay files", "*.dfreplay")],
+                title="Save replay",
+            )
+            if not self.file:
+                return False
+        elif not self.undo_stack.is_modified:
+            return True
+
+        replay = self._current_replay()
         utils.write_replay_to_file(self.file, replay)
         self.undo_stack.set_unmodified()
 
@@ -346,6 +363,17 @@ The exported nexus script will be legal, but may not play back as expected.""",
             nexus_script: str = self.diagnostics.nexus_script.serialize()
             with open(filepath, "w", encoding="utf-8") as file:
                 file.write(nexus_script)
+
+    def publish_to_dustkid(self) -> None:
+        """Publish the current replay to dustkid."""
+
+        if self.undo_stack.is_modified:
+            tkinter.messagebox.showwarning(
+                message="There are unsaved changes. Save or undo the changes before publishing."
+            )
+            return
+
+        PublishReplayDialog(self, self._current_replay())
 
     def jump_to_previous_diagnostic(self) -> None:
         """Move the cursor to the next diagnostic."""

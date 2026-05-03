@@ -15,6 +15,7 @@ class Config:
     dustforce_path: str = r"C:\Program Files (x86)\Steam\steamapps\common\Dustforce"
     show_level: bool = True
     window_geometry: str = ""
+    dustkid_id: int | None = None
 
     @classmethod
     def read(cls) -> Config:
@@ -27,6 +28,7 @@ class Config:
             dustforce_path=parser.get("DEFAULT", "dustforce_path"),
             show_level=parser.getboolean("DEFAULT", "show_level"),
             window_geometry=parser.get("DEFAULT", "window_geometry"),
+            dustkid_id=parser.getint("DEFAULT", "dustkid_id", fallback=None),
         )
 
     def write(self) -> None:
@@ -38,6 +40,7 @@ class Config:
                 "DEFAULT": {
                     key: self._stringify_value(value)
                     for key, value in dataclasses.asdict(self).items()
+                    if value is not None
                 }
             }
         )
@@ -53,11 +56,11 @@ class Config:
         return {
             field.name: cls._stringify_value(field.default)
             for field in dataclasses.fields(cls)
-            if field.default is not dataclasses.MISSING
+            if field.default is not dataclasses.MISSING and field.default is not None
         }
 
     @staticmethod
-    def _stringify_value(value: str | bool) -> str:
+    def _stringify_value(value: str | bool | int) -> str:
         """Convert a value into a string that the parser can deal with."""
 
         if isinstance(value, bool):
@@ -65,6 +68,10 @@ class Config:
                 return "true"
             else:
                 return "false"
+
+        if isinstance(value, int):
+            return str(value)
+
         return value
 
 
