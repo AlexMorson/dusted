@@ -3,7 +3,7 @@ import tkinter as tk
 from collections.abc import Callable
 
 import dusted
-from dusted.replay_diagnostics import ReplayDiagnostics
+from dusted.models.replay_diagnostics import ReplayDiagnostics
 
 
 class DiagnosticsSummaryView(tk.Frame):

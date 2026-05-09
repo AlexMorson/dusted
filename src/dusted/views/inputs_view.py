@@ -3,14 +3,14 @@ from __future__ import annotations
 import tkinter as tk
 from typing import Any
 
-from dusted.cursor import Cursor
-from dusted.dialog import SimpleDialog
-from dusted.inputs import Inputs
-from dusted.inputs_grid import InputsGrid
-from dusted.jump_to_frame import JumpToFrameDialog
-from dusted.replay_diagnostics import ReplayDiagnostics
-from dusted.undo_stack import UndoStack
+from dusted.models.cursor import Cursor
+from dusted.models.inputs import Inputs
+from dusted.models.inputs_grid import InputsGrid
+from dusted.models.replay_diagnostics import ReplayDiagnostics
+from dusted.models.undo_stack import UndoStack
 from dusted.utils import modifier_held
+from dusted.views.dialog import SimpleDialog
+from dusted.views.jump_to_frame import JumpToFrameDialog
 
 DEFAULT_INPUTS = "11000000"
 INTENT_COUNT = 8
@@ -521,8 +521,9 @@ class InputsView(tk.Frame):
 if __name__ == "__main__":
     import random
 
-    from dusted.cursor import Cursor
-    from dusted.inputs import Inputs
+    from dusted.models.cursor import Cursor
+    from dusted.models.inputs import Inputs
+    from dusted.models.inputs_grid import InputsGrid
 
     class App(tk.Tk):
         def __init__(self):
@@ -538,7 +539,7 @@ if __name__ == "__main__":
                 )
             inputs = Inputs(inputs)
             diagnostics = ReplayDiagnostics(inputs)
-            cursor = Cursor(inputs)
+            cursor = Cursor(InputsGrid(inputs))
             undo_stack = UndoStack(inputs, cursor)
 
             frame = tk.Frame()

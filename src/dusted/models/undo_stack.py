@@ -5,8 +5,8 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 
 from dusted.broadcaster import Broadcaster
-from dusted.cursor import Cursor
-from dusted.inputs import Inputs, Intents
+from dusted.models.cursor import Cursor
+from dusted.models.inputs import Inputs, Intents
 
 
 @dataclass(frozen=True, slots=True)

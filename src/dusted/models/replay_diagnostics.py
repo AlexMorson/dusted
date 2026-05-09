@@ -1,7 +1,7 @@
 from enum import Enum, auto
 
 from dusted.broadcaster import Broadcaster
-from dusted.inputs import Inputs
+from dusted.models.inputs import Inputs
 from dusted.nexus_script import ButtonState, DirectionState, KeyStates, NexusScript
 
 # The number of frames after the initial tap that a second tap will register as

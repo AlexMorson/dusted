@@ -1,8 +1,8 @@
 from unittest import TestCase
 
-from dusted.inputs import Inputs
-from dusted.inputs_grid import InputsGrid
-from dusted.replay_diagnostics import ReplayDiagnostics
+from dusted.models.inputs import Inputs
+from dusted.models.inputs_grid import InputsGrid
+from dusted.models.replay_diagnostics import ReplayDiagnostics
 
 
 class TestReplayDiagnostics(TestCase):

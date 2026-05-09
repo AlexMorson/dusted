@@ -12,19 +12,19 @@ from dustmaker.replay import Character, IntentStream, PlayerData, Replay
 
 from dusted import dustforce, utils
 from dusted.config import config
-from dusted.cursor import Cursor
-from dusted.diagnostics_summary_view import DiagnosticsSummaryView
-from dusted.dialog import SimpleDialog
-from dusted.inputs import Inputs, Intents
-from dusted.inputs_grid import InputsGrid
-from dusted.inputs_view import InputsView
-from dusted.jump_to_frame import JumpToFrameDialog
-from dusted.level import Level
-from dusted.level_view import LevelView
-from dusted.publish_replay import PublishReplayDialog
-from dusted.replay_diagnostics import ReplayDiagnostics
-from dusted.replay_metadata import ReplayMetadata, ReplayMetadataDialog
-from dusted.undo_stack import UndoStack
+from dusted.models.cursor import Cursor
+from dusted.models.inputs import Inputs, Intents
+from dusted.models.inputs_grid import InputsGrid
+from dusted.models.level import Level
+from dusted.models.replay_diagnostics import ReplayDiagnostics
+from dusted.models.undo_stack import UndoStack
+from dusted.views.diagnostics_summary_view import DiagnosticsSummaryView
+from dusted.views.dialog import SimpleDialog
+from dusted.views.inputs_view import InputsView
+from dusted.views.jump_to_frame import JumpToFrameDialog
+from dusted.views.level_view import LevelView
+from dusted.views.publish_replay_dialog import PublishReplayDialog
+from dusted.views.replay_metadata import ReplayMetadata, ReplayMetadataDialog
 
 LEVEL_PATTERN = r"START (.*)"
 COORD_PATTERN = r"(\d*) (-?\d*) (-?\d*)"

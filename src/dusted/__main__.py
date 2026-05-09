@@ -3,7 +3,7 @@ from pathlib import Path
 
 import platformdirs
 
-from dusted.gui import App
+from dusted.views.gui import App
 
 
 def main():
