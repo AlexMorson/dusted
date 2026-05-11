@@ -51,6 +51,7 @@ class App(tk.Tk):
         self._state = AppState.default()
         self._state.diagnostics.subscribe(self.on_diagnostics_change)
         self._state.undo_stack.subscribe(self.on_undo_stack_change)
+        self._state.show_level.subscribe(self.on_show_level_change)
 
         self.write_config_timer = None
 
@@ -139,7 +140,7 @@ class App(tk.Tk):
         view_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="View", underline=0, menu=view_menu)
 
-        show_level = tk.BooleanVar(self, value=True)
+        show_level = tk.BooleanVar(self, value=self._state.show_level.get())
         view_menu.add_checkbutton(
             label="Show level",
             variable=show_level,
@@ -147,7 +148,7 @@ class App(tk.Tk):
             offvalue=False,
         )
         show_level.trace_add(
-            "write", lambda *_: self.on_show_level_change(show_level.get())
+            "write", lambda *_: self._state.show_level.set(show_level.get())
         )
 
         settings_menu = tk.Menu(menu_bar, tearoff=0)
@@ -203,7 +204,6 @@ class App(tk.Tk):
         # Apply config state
         if config.window_geometry:
             self.geometry(config.window_geometry)
-        show_level.set(config.show_level)
 
         # Hotkeys / Callbacks
         self.bind("<Configure>", self.on_configure)
@@ -492,7 +492,9 @@ The exported nexus script will be legal, but may not play back as expected.""",
 
         self.update_title()
 
-    def on_show_level_change(self, show):
+    def on_show_level_change(self) -> None:
+        show = self._state.show_level.get()
+
         # Process events so that we read up-to-date widget dimensions.
         self.update_idletasks()
 

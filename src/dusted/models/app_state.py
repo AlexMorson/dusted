@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from dustmaker.replay import Character
 
+from dusted.config import config
 from dusted.models.cursor import Cursor
 from dusted.models.inputs import Inputs, Intents
 from dusted.models.inputs_grid import InputsGrid
@@ -18,6 +19,7 @@ class AppState:
     diagnostics: ReplayDiagnostics
     cursor: Cursor
     undo_stack: UndoStack
+    show_level: Value[bool]
 
     @classmethod
     def default(cls) -> "AppState":
@@ -30,4 +32,5 @@ class AppState:
             diagnostics=ReplayDiagnostics(inputs),
             cursor=cursor,
             undo_stack=UndoStack(inputs, cursor),
+            show_level=Value(config.show_level),
         )
