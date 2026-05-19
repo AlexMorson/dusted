@@ -201,9 +201,10 @@ class App(tk.Tk):
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
 
-        # Apply config state
+        # Window size
         if config.window_geometry:
             self.geometry(config.window_geometry)
+        self.on_show_level_change()
 
         # Hotkeys / Callbacks
         self.bind("<Configure>", self.on_configure)
