@@ -14,11 +14,12 @@ class Broadcaster:
     @contextmanager
     def batch(self) -> Generator[None, None, None]:
         """Batch any events until the context manager has closed."""
+        was_batching = self._batching
+        self._batching = True
         try:
-            self._batching = True
             yield
         finally:
-            self._batching = False
+            self._batching = was_batching
             if self._broadcast_scheduled:
                 self.broadcast()
 
