@@ -1,4 +1,4 @@
-from dusted.dialog import SimpleDialog
+from dusted.views.dialog import SimpleDialog
 
 
 class JumpToFrameDialog(SimpleDialog):

@@ -1,5 +1,5 @@
 from dusted.broadcaster import Broadcaster
-from dusted.inputs_grid import GRID_INTENTS, InputsGrid
+from dusted.models.inputs_grid import GRID_INTENTS, InputsGrid
 
 
 class Cursor(Broadcaster):

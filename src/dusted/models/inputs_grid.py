@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Collection
 
 from dusted.broadcaster import Broadcaster
-from dusted.inputs import Inputs, Intents
+from dusted.models.inputs import Inputs, Intents
 
 
 class GridIntent(ABC):

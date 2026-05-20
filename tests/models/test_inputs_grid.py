@@ -1,7 +1,7 @@
 from unittest import TestCase, mock
 
-from dusted.inputs import Inputs, Intents
-from dusted.inputs_grid import InputsGrid
+from dusted.models.inputs import Inputs, Intents
+from dusted.models.inputs_grid import InputsGrid
 
 
 class TestInputsGrid(TestCase):

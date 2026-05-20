@@ -4,7 +4,7 @@ from tkinter import messagebox
 
 from dustmaker.replay import Character
 
-from dusted.dialog import Dialog
+from dusted.views.dialog import Dialog
 
 CHARACTER_NAMES = ["Dustman", "Dustgirl", "Dustkid", "Dustworth"]
 
