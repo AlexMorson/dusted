@@ -53,6 +53,7 @@ class App(tk.Tk):
             "Uncaught exception"
         )
 
+        self._filepath = Value[str | None](None)
         self._level = Level("downhill")
         self._character = Value(Character.DUSTMAN)
         self._inputs = Inputs([Intents.default()] * 55)
@@ -211,10 +212,12 @@ class App(tk.Tk):
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
 
-        # Window size
+        # Window state
         if config.window_geometry:
             self.geometry(config.window_geometry)
         self.on_show_level_change()
+
+        self.update_title()
 
         # Hotkeys / Callbacks
         self.bind("<Configure>", self.on_configure)
@@ -227,8 +230,6 @@ class App(tk.Tk):
         self.bind("<F5>", lambda e: self.watch())
         self.bind("<F6>", lambda e: self.load_state_and_watch())
 
-        self.file = None
-        self.update_title()
         self.after_idle(self.handle_stdout)
 
         # Check if the Dustforce directory is valid
@@ -263,8 +264,9 @@ class App(tk.Tk):
 
     def update_title(self):
         title = "Dusted"
-        if self.file is not None:
-            title += f" - {self.file}"
+        filepath = self._filepath.get()
+        if filepath is not None:
+            title += f" - {filepath}"
             if self._undo_stack.is_modified:
                 title += " [*]"
         self.title(title)
@@ -281,11 +283,11 @@ class App(tk.Tk):
 
     def watch(self):
         if self.save_file():
-            dustforce.watch_replay(self.file)
+            dustforce.watch_replay(self._filepath.get())
 
     def load_state_and_watch(self):
         if self.save_file():
-            dustforce.watch_replay_load_state(self.file)
+            dustforce.watch_replay_load_state(self._filepath.get())
 
     def _current_replay(self) -> Replay:
         """Return a replay instance created from the current application state."""
@@ -313,26 +315,28 @@ class App(tk.Tk):
         :return: True if the file was saved.
         """
 
-        if not self.file or save_as:
-            self.file = tkinter.filedialog.asksaveasfilename(
+        filepath = self._filepath.get()
+        if not filepath or save_as:
+            filepath = tkinter.filedialog.asksaveasfilename(
                 defaultextension=".dfreplay",
                 filetypes=[("replay files", "*.dfreplay")],
                 title="Save replay",
             )
-            if not self.file:
+            if not filepath:
                 return False
+            self._filepath.set(filepath)
         elif not self._undo_stack.is_modified:
             return True
 
         replay = self._current_replay()
-        utils.write_replay_to_file(self.file, replay)
+        utils.write_replay_to_file(filepath, replay)
         self._undo_stack.set_unmodified()
 
         return True
 
     def new_file(self):
         def callback(metadata: ReplayMetadata):
-            self.file = None
+            self._filepath.set(None)
             self._level.set(metadata.level)
             self._character.set(metadata.character)
             self._inputs[:] = [Intents.default()] * 55
@@ -443,7 +447,7 @@ The exported nexus script will be legal, but may not play back as expected.""",
             self.load_replay(replay, filepath)
 
     def load_replay(self, replay: Replay, filepath: str | None = None) -> None:
-        self.file = filepath
+        self._filepath.set(filepath)
         self._level.set(replay.level.decode())
         self._character.set(replay.players[0].character)
 

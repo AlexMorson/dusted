@@ -50,7 +50,7 @@ def load_replay_from_file(filepath: str) -> Replay:
         return DFReader(file).read_replay()
 
 
-def write_replay_to_file(filepath: str, replay: Replay):
+def write_replay_to_file(filepath: str, replay: Replay) -> None:
     with open(filepath, "wb") as file:
         DFWriter(file).write_replay(replay)
 
