@@ -8,12 +8,17 @@ import tkinter as tk
 import tkinter.filedialog
 import tkinter.messagebox
 
-from dustmaker.replay import IntentStream, PlayerData, Replay
+from dustmaker.replay import Character, IntentStream, PlayerData, Replay
 
 from dusted import dustforce, utils
 from dusted.config import config
-from dusted.models.app_state import AppState
-from dusted.models.inputs import Intents
+from dusted.models.cursor import Cursor
+from dusted.models.inputs import Inputs, Intents
+from dusted.models.inputs_grid import InputsGrid
+from dusted.models.level import Level
+from dusted.models.replay_diagnostics import ReplayDiagnostics
+from dusted.models.undo_stack import UndoStack
+from dusted.models.value import Value
 from dusted.views.diagnostics_summary_view import DiagnosticsSummaryView
 from dusted.views.dialog import SimpleDialog
 from dusted.views.inputs_view import InputsView
@@ -48,10 +53,17 @@ class App(tk.Tk):
             "Uncaught exception"
         )
 
-        self._state = AppState.default()
-        self._state.diagnostics.subscribe(self.on_diagnostics_change)
-        self._state.undo_stack.subscribe(self.on_undo_stack_change)
-        self._state.show_level.subscribe(self.on_show_level_change)
+        self._level = Level("downhill")
+        self._character = Value(Character.DUSTMAN)
+        self._inputs = Inputs([Intents.default()] * 55)
+        self._diagnostics = ReplayDiagnostics(self._inputs)
+        self._cursor = Cursor(InputsGrid(self._inputs))
+        self._undo_stack = UndoStack(self._inputs, self._cursor)
+        self._show_level = Value(config.show_level)
+
+        self._diagnostics.subscribe(self.on_diagnostics_change)
+        self._undo_stack.subscribe(self.on_undo_stack_change)
+        self._show_level.subscribe(self.on_show_level_change)
 
         self.write_config_timer = None
 
@@ -103,20 +115,20 @@ class App(tk.Tk):
 
         self.edit_menu.add_command(
             label="Undo",
-            command=self._state.undo_stack.undo,
+            command=self._undo_stack.undo,
             state=tk.DISABLED,
             accelerator="Ctrl+Z",
         )
         self.edit_menu.add_command(
             label="Redo",
-            command=self._state.undo_stack.redo,
+            command=self._undo_stack.redo,
             state=tk.DISABLED,
             accelerator="Ctrl+Shift+Z",
         )
         self.edit_menu.add_separator()
         self.edit_menu.add_command(
             label="Jump to frame...",
-            command=lambda: JumpToFrameDialog(self, self._state.cursor),
+            command=lambda: JumpToFrameDialog(self, self._cursor),
             accelerator="Ctrl+G",
         )
         self.edit_menu.add_command(
@@ -140,16 +152,14 @@ class App(tk.Tk):
         view_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="View", underline=0, menu=view_menu)
 
-        show_level = tk.BooleanVar(self, value=self._state.show_level.get())
+        show_level = tk.BooleanVar(self, value=self._show_level.get())
         view_menu.add_checkbutton(
             label="Show level",
             variable=show_level,
             onvalue=True,
             offvalue=False,
         )
-        show_level.trace_add(
-            "write", lambda *_: self._state.show_level.set(show_level.get())
-        )
+        show_level.trace_add("write", lambda *_: self._show_level.set(show_level.get()))
 
         settings_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Settings", underline=0, menu=settings_menu)
@@ -175,18 +185,18 @@ class App(tk.Tk):
         )
         diagnostics_summary = DiagnosticsSummaryView(
             toolbar,
-            self._state.diagnostics,
+            self._diagnostics,
             command_prev=self.jump_to_previous_diagnostic,
             command_next=self.jump_to_next_diagnostic,
         )
 
-        self.level_view = LevelView(self, self._state.level, self._state.cursor)
+        self.level_view = LevelView(self, self._level, self._cursor)
         inputs_view = InputsView(
             self,
-            self._state.inputs,
-            self._state.diagnostics,
-            self._state.cursor,
-            self._state.undo_stack,
+            self._inputs,
+            self._diagnostics,
+            self._cursor,
+            self._undo_stack,
         )
 
         # Layout
@@ -255,7 +265,7 @@ class App(tk.Tk):
         title = "Dusted"
         if self.file is not None:
             title += f" - {self.file}"
-            if self._state.undo_stack.is_modified:
+            if self._undo_stack.is_modified:
                 title += " [*]"
         self.title(title)
 
@@ -281,19 +291,19 @@ class App(tk.Tk):
         """Return a replay instance created from the current application state."""
 
         intent_streams = {
-            IntentStream.X: [intents.x for intents in self._state.inputs],
-            IntentStream.Y: [intents.y for intents in self._state.inputs],
-            IntentStream.JUMP: [intents.jump for intents in self._state.inputs],
-            IntentStream.DASH: [intents.dash for intents in self._state.inputs],
-            IntentStream.FALL: [intents.fall for intents in self._state.inputs],
-            IntentStream.LIGHT: [intents.light for intents in self._state.inputs],
-            IntentStream.HEAVY: [intents.heavy for intents in self._state.inputs],
-            IntentStream.TAUNT: [intents.taunt for intents in self._state.inputs],
+            IntentStream.X: [intents.x for intents in self._inputs],
+            IntentStream.Y: [intents.y for intents in self._inputs],
+            IntentStream.JUMP: [intents.jump for intents in self._inputs],
+            IntentStream.DASH: [intents.dash for intents in self._inputs],
+            IntentStream.FALL: [intents.fall for intents in self._inputs],
+            IntentStream.LIGHT: [intents.light for intents in self._inputs],
+            IntentStream.HEAVY: [intents.heavy for intents in self._inputs],
+            IntentStream.TAUNT: [intents.taunt for intents in self._inputs],
         }
         return Replay(
             username=b"TAS",
-            level=self._state.level.get().encode(),
-            players=[PlayerData(self._state.character.get(), intent_streams)],
+            level=self._level.get().encode(),
+            players=[PlayerData(self._character.get(), intent_streams)],
         )
 
     def save_file(self, save_as: bool = False) -> bool:
@@ -311,31 +321,31 @@ class App(tk.Tk):
             )
             if not self.file:
                 return False
-        elif not self._state.undo_stack.is_modified:
+        elif not self._undo_stack.is_modified:
             return True
 
         replay = self._current_replay()
         utils.write_replay_to_file(self.file, replay)
-        self._state.undo_stack.set_unmodified()
+        self._undo_stack.set_unmodified()
 
         return True
 
     def new_file(self):
         def callback(metadata: ReplayMetadata):
             self.file = None
-            self._state.level.set(metadata.level)
-            self._state.character.set(metadata.character)
-            self._state.inputs[:] = [Intents.default()] * 55
-            self._state.undo_stack.clear()
+            self._level.set(metadata.level)
+            self._character.set(metadata.character)
+            self._inputs[:] = [Intents.default()] * 55
+            self._undo_stack.clear()
 
         ReplayMetadataDialog(self, callback, creating=True)
 
     def export_as_nexus_script(self) -> None:
         """Export the current inputs as a nexus script."""
 
-        # Show a warning if there are oustanding diagnostics.
-        diagnostic_count = len(self._state.diagnostics.warnings) + len(
-            self._state.diagnostics.errors
+        # Show a warning if there are outstanding diagnostics.
+        diagnostic_count = len(self._diagnostics.warnings) + len(
+            self._diagnostics.errors
         )
         if diagnostic_count > 0:
             if not tkinter.messagebox.askokcancel(
@@ -353,14 +363,14 @@ The exported nexus script will be legal, but may not play back as expected.""",
             title="Export as nexus script",
         )
         if filepath:
-            nexus_script: str = self._state.diagnostics.nexus_script.serialize()
+            nexus_script: str = self._diagnostics.nexus_script.serialize()
             with open(filepath, "w", encoding="utf-8") as file:
                 file.write(nexus_script)
 
     def publish_to_dustkid(self) -> None:
         """Publish the current replay to dustkid."""
 
-        if self._state.undo_stack.is_modified:
+        if self._undo_stack.is_modified:
             tkinter.messagebox.showwarning(
                 message="There are unsaved changes. Save or undo the changes before publishing."
             )
@@ -373,9 +383,7 @@ The exported nexus script will be legal, but may not play back as expected.""",
 
         # Sort diagnostics by their column then row.
         ordered_diagnostics = sorted(
-            itertools.chain(
-                self._state.diagnostics.warnings, self._state.diagnostics.errors
-            ),
+            itertools.chain(self._diagnostics.warnings, self._diagnostics.errors),
             key=lambda row_col: (row_col[1], row_col[0]),
         )
         if not ordered_diagnostics:
@@ -384,7 +392,7 @@ The exported nexus script will be legal, but may not play back as expected.""",
         # Find the index of the previous diagnostic.
         current_diagnostic_index = bisect.bisect_left(
             ordered_diagnostics,
-            (self._state.cursor.current_col, self._state.cursor.current_row),
+            (self._cursor.current_col, self._cursor.current_row),
             key=lambda row_col: (row_col[1], row_col[0]),
         )
         if current_diagnostic_index == 0:
@@ -392,16 +400,14 @@ The exported nexus script will be legal, but may not play back as expected.""",
         else:
             previous_diagnostic_index = current_diagnostic_index - 1
 
-        self._state.cursor.set(*ordered_diagnostics[previous_diagnostic_index])
+        self._cursor.set(*ordered_diagnostics[previous_diagnostic_index])
 
     def jump_to_next_diagnostic(self) -> None:
         """Move the cursor to the previous diagnostic."""
 
         # Sort diagnostics by their column then row.
         ordered_diagnostics = sorted(
-            itertools.chain(
-                self._state.diagnostics.warnings, self._state.diagnostics.errors
-            ),
+            itertools.chain(self._diagnostics.warnings, self._diagnostics.errors),
             key=lambda row_col: (row_col[1], row_col[0]),
         )
         if not ordered_diagnostics:
@@ -410,20 +416,20 @@ The exported nexus script will be legal, but may not play back as expected.""",
         # Find the index of the next diagnostic.
         next_diagnostic_index = bisect.bisect_right(
             ordered_diagnostics,
-            (self._state.cursor.current_col, self._state.cursor.current_row),
+            (self._cursor.current_col, self._cursor.current_row),
             key=lambda row_col: (row_col[1], row_col[0]),
         )
         if next_diagnostic_index == len(ordered_diagnostics):
             next_diagnostic_index = 0
 
-        self._state.cursor.set(*ordered_diagnostics[next_diagnostic_index])
+        self._cursor.set(*ordered_diagnostics[next_diagnostic_index])
 
     def edit_replay_metadata(self):
         def callback(metadata: ReplayMetadata):
-            self._state.level.set(metadata.level)
-            self._state.character.set(metadata.character)
+            self._level.set(metadata.level)
+            self._character.set(metadata.character)
 
-        metadata = ReplayMetadata(self._state.character.get(), self._state.level.get())
+        metadata = ReplayMetadata(self._character.get(), self._level.get())
         ReplayMetadataDialog(self, callback, defaults=metadata)
 
     def open_file(self):
@@ -438,8 +444,8 @@ The exported nexus script will be legal, but may not play back as expected.""",
 
     def load_replay(self, replay: Replay, filepath: str | None = None) -> None:
         self.file = filepath
-        self._state.level.set(replay.level.decode())
-        self._state.character.set(replay.players[0].character)
+        self._level.set(replay.level.decode())
+        self._character.set(replay.players[0].character)
 
         inputs: list[Intents] = []
         player_data = replay.players[0]
@@ -457,11 +463,11 @@ The exported nexus script will be legal, but may not play back as expected.""",
                     taunt=player_data.get_intent_value(IntentStream.TAUNT, frame),
                 )
             )
-        self._state.inputs[:] = inputs
+        self._inputs[:] = inputs
 
-        self._state.undo_stack.clear()
+        self._undo_stack.clear()
         if filepath is not None:
-            self._state.undo_stack.set_unmodified()
+            self._undo_stack.set_unmodified()
 
     def set_dustforce_directory(self):
         new_path = tkinter.filedialog.askdirectory(initialdir=config.dustforce_path)
@@ -475,18 +481,18 @@ The exported nexus script will be legal, but may not play back as expected.""",
         # Enable or disable the jump to next/previous diagnostic menu items.
         diagnostics_state = (
             tk.NORMAL
-            if self._state.diagnostics.errors or self._state.diagnostics.warnings
+            if self._diagnostics.errors or self._diagnostics.warnings
             else tk.DISABLED
         )
         self.edit_menu.entryconfig(4, state=diagnostics_state)
         self.edit_menu.entryconfig(5, state=diagnostics_state)
 
     def on_undo_stack_change(self):
-        undo_state = tk.NORMAL if self._state.undo_stack.can_undo else tk.DISABLED
-        redo_state = tk.NORMAL if self._state.undo_stack.can_redo else tk.DISABLED
+        undo_state = tk.NORMAL if self._undo_stack.can_undo else tk.DISABLED
+        redo_state = tk.NORMAL if self._undo_stack.can_redo else tk.DISABLED
 
-        undo_label = "Undo " + self._state.undo_stack.undo_text()
-        redo_label = "Redo " + self._state.undo_stack.redo_text()
+        undo_label = "Undo " + self._undo_stack.undo_text()
+        redo_label = "Redo " + self._undo_stack.redo_text()
 
         self.edit_menu.entryconfig(0, state=undo_state, label=undo_label)
         self.edit_menu.entryconfig(1, state=redo_state, label=redo_label)
@@ -494,7 +500,7 @@ The exported nexus script will be legal, but may not play back as expected.""",
         self.update_title()
 
     def on_show_level_change(self) -> None:
-        show = self._state.show_level.get()
+        show = self._show_level.get()
 
         # Process events so that we read up-to-date widget dimensions.
         self.update_idletasks()
