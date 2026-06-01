@@ -4,9 +4,10 @@ import threading
 import time
 
 from dusted.config import config
+from dusted.dustforce.event import Event, parse_event
 
 watcher = None
-stdout = queue.Queue[str]()
+events = queue.Queue[Event]()
 
 
 class LogfileWatcher:
@@ -27,7 +28,8 @@ class LogfileWatcher:
                 self.size = new_size
 
                 while line := self.file.readline():
-                    stdout.put(line.strip())
+                    if event := parse_event(line.strip()):
+                        events.put(event)
 
                 time.sleep(1 / 60)
 

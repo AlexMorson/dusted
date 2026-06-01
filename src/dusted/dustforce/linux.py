@@ -2,14 +2,17 @@ import queue
 import threading
 from subprocess import PIPE, Popen
 
+from dusted.dustforce.event import Event, parse_event
+
 procs: list[Popen] = []
-stdout = queue.Queue[str]()
+events = queue.Queue[Event]()
 
 
 def process_stdout(proc: Popen) -> None:
     assert proc.stdout is not None
     while (line := proc.stdout.readline()) != b"":
-        stdout.put(line.decode().strip())
+        if event := parse_event(line.decode().strip()):
+            events.put(event)
     procs.remove(proc)
 
 
