@@ -14,8 +14,6 @@ uvx dusted
 
 For extra features, copy `plugin/tas.as` to `~dustforce/user/script_src`, compile as an in-game plugin, and enable it.
 
-On linux, the program `unbuffer` is required, which can be installed with `sudo apt-get install expect` (or equivalent depending on your distribution).
-
 ### Manual
 
 Alternatively, Dusted can be installed manually using pip.
