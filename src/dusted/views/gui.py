@@ -3,7 +3,6 @@ import itertools
 import logging
 import os
 import queue
-import re
 import tkinter as tk
 import tkinter.filedialog
 import tkinter.messagebox
@@ -13,6 +12,7 @@ from dustmaker.replay import Character, IntentStream, PlayerData, Replay
 from dusted import dustforce, utils
 from dusted.config import config
 from dusted.models.cursor import Cursor
+from dusted.models.game_states import GameStates
 from dusted.models.inputs import Inputs, Intents
 from dusted.models.inputs_grid import InputsGrid
 from dusted.models.level import Level
@@ -61,6 +61,7 @@ class App(tk.Tk):
         self._cursor = Cursor(InputsGrid(self._inputs))
         self._undo_stack = UndoStack(self._inputs, self._cursor)
         self._show_level = Value(config.show_level)
+        self._game_states = GameStates()
 
         self._diagnostics.subscribe(self.on_diagnostics_change)
         self._undo_stack.subscribe(self.on_undo_stack_change)
@@ -191,7 +192,13 @@ class App(tk.Tk):
             command_next=self.jump_to_next_diagnostic,
         )
 
-        self.level_view = LevelView(self, self._level, self._cursor)
+        self.level_view = LevelView(
+            self,
+            self._level,
+            self._cursor,
+            self._inputs,
+            self._game_states,
+        )
         inputs_view = InputsView(
             self,
             self._inputs,
@@ -274,10 +281,8 @@ class App(tk.Tk):
     def handle_stdout(self):
         try:
             while 1:
-                line = dustforce.stdout.get_nowait()
-                if m := re.match(COORD_PATTERN, line):
-                    frame, x, y = map(int, m.group(1, 2, 3))
-                    self.level_view.add_coordinate(frame, x, y - 48)
+                event = dustforce.events.get_nowait()
+                self._game_states.on_event(event)
         except queue.Empty:
             self.after(16, self.handle_stdout)
 

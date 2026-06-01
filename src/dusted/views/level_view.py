@@ -3,6 +3,8 @@ import tkinter as tk
 
 from dusted import geom, utils
 from dusted.models.cursor import Cursor
+from dusted.models.game_states import GameStates, Node
+from dusted.models.inputs import Inputs
 from dusted.models.level import Level
 
 
@@ -12,6 +14,8 @@ class LevelView(tk.Canvas):
         parent: tk.Misc,
         level: Level,
         cursor: Cursor,
+        inputs: Inputs,
+        game_states: GameStates,
     ):
         super().__init__(parent, height=0)
 
@@ -19,6 +23,10 @@ class LevelView(tk.Canvas):
         self._level.subscribe(self._on_level_change)
         self._cursor = cursor
         self._cursor.subscribe(self._on_cursor_move)
+        self._inputs = inputs
+        self._inputs.subscribe(self._update_path)
+        self._game_states = game_states
+        self._game_states.subscribe(self._update_path)
 
         self.bind("<Button-4>", self._on_scroll)  # Linux
         self.bind("<Button-5>", self._on_scroll)
@@ -33,12 +41,25 @@ class LevelView(tk.Canvas):
         self.reset()
 
     def reset(self) -> None:
+        # The current zoom and offset.
         self._zoom_level = 1.0
         self._offset_x = self._offset_y = 0.0
+
+        # Previous mouse position, used for drag events.
         self._prev_mx = self._prev_my = 0.0
+
+        # The final node in the currently shown path.
+        self._path_node: Node | None = None
+
+        # The coordinates of each state along the path.
         self._coords: list[tuple[float, float]] = []
+
+        # The objects making up the path.
         self._path_objects: list[int] = []
+
+        # The rectangle showing the position at the current frame.
         self._position_object: int | None = None
+
         self.delete("all")
 
     def _on_level_change(self) -> None:
@@ -54,11 +75,58 @@ class LevelView(tk.Canvas):
                     *[(48 * x, 48 * y) for x, y in hole], fill="#d9d9d9"
                 )
 
-        # Pan to level start
+        # Pan to level start.
         start = level_data.start_position()
         width = self.winfo_width()
         height = self.winfo_height()
         self.pan(width // 2 - start.x, height // 2 - start.y)
+
+    def _update_path(self) -> None:
+        # Clear the path if there is no state, or it is on a different level.
+        current_node = self._game_states.current
+        if current_node is None or self._game_states.level != self._level.get():
+            while self._path_objects:
+                self.delete(self._path_objects.pop())
+            self._path_node = None
+            self._coords = []
+            return
+
+        if self._path_node is None:
+            first_differing_frame = 0
+        elif ancestor := self._path_node.common_ancestor(current_node):
+            first_differing_frame = ancestor.frame + 1
+        else:
+            first_differing_frame = 0
+
+        # Clear the old suffix.
+        remove_objects_from = max(0, first_differing_frame - 1)
+        to_remove = self._path_objects[remove_objects_from:]
+        for obj in to_remove:
+            self.delete(obj)
+        del self._path_objects[remove_objects_from:]
+        del self._coords[first_differing_frame:]
+
+        # Add the new line segments.
+        new_objects = []
+        new_coords = []
+        next_node = current_node
+        while next_node.frame >= first_differing_frame:
+            new_coords.append((next_node.state.x, next_node.state.y - 48))
+            if next_node.parent is None:
+                break
+            obj = self.create_line(
+                next_node.state.x,
+                next_node.state.y - 48,
+                next_node.parent.state.x,
+                next_node.parent.state.y - 48,
+            )
+            self._transform_object(obj)
+            new_objects.append(obj)
+            next_node = next_node.parent
+
+        self._path_objects.extend(reversed(new_objects))
+        self._coords.extend(reversed(new_coords))
+        self._path_node = current_node
 
     def select_frame(self, frame: int) -> None:
         if self._position_object is not None:
@@ -71,23 +139,6 @@ class LevelView(tk.Canvas):
             self._transform_object(self._position_object)
         else:
             self._position_object = None
-
-    def add_coordinate(self, frame: int, x: float, y: float) -> None:
-        if frame < len(self._coords):  # Clear suffix
-            for i in self._path_objects[max(0, frame - 1) :]:
-                self.delete(i)
-            self._path_objects = self._path_objects[: max(0, frame - 1)]
-            self._coords = self._coords[:frame]
-        elif frame > len(self._coords):  # Loaded state in the future, pad values
-            self._path_objects.extend([-1] * (frame - min(1, len(self._coords)) + 1))
-            self._coords.extend([(x, y)] * (frame - len(self._coords) + 1))
-            return
-
-        self._coords.append((x, y))
-        if frame > 0:
-            i = self.create_line(*self._coords[frame - 1], *self._coords[frame])
-            self._transform_object(i)
-            self._path_objects.append(i)
 
     def _transform_object(self, i: int) -> None:
         self.scale(i, 0, 0, self._zoom_level, self._zoom_level)

@@ -60,6 +60,19 @@ class Intents:
     heavy: int
     taunt: int
 
+    def __post_init__(self) -> None:
+        if (
+            self.x not in (-1, 0, 1)
+            or self.y not in (-1, 0, 1)
+            or self.jump not in (0, 1, 2)
+            or self.dash not in (0, 1, 2)
+            or self.fall not in (0, 1, 2)
+            or self.light not in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+            or self.heavy not in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+            or self.taunt not in (0, 1, 2)
+        ):
+            raise ValueError(f"Invalid intents: {self}")
+
     @classmethod
     def default(cls) -> Intents:
         return cls(0, 0, 0, 0, 0, 0, 0, 0)
