@@ -458,12 +458,11 @@ The exported nexus script will be legal, but may not play back as expected.""",
 
         # Find the first place that the imported game inputs diverge from the
         # current inputs.
-        frame = 0
         for frame, (left, right) in enumerate(zip(game_inputs, self._inputs)):
             if left != right:
                 break
-
-        if frame == len(game_inputs) - 1:
+        else:
+            # The inputs are identical.
             return
 
         # Paste in the the modified inputs from that frame onwards.
