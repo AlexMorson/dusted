@@ -80,7 +80,6 @@ class script {
     scene@ g;
     controllable@ p;
     Fnv1aHasher hasher;
-    string prev_id;
     string msg;
 
     void on_level_start() {
@@ -99,8 +98,12 @@ class script {
         puts(msg);
     }
 
+    void checkpoint_load() {
+        @p = controller_controllable(0);
+    }
+
     void step(int) {
-        prev_id = hasher.hash();
+        uint64 prev_id = hasher.hash();
         hasher.push(encode_intents(p));
 
         msg = "[dusted] step";
