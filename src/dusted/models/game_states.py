@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass
 
 from dustmaker.replay import Character
@@ -13,13 +14,27 @@ from dusted.models.inputs import Intents
 class Node:
     parent: Node | None
     frame: int
+    intents: Intents | None
     state: State
     next_states: dict[Intents, Node]
 
     def after(self, intents: Intents) -> Node | None:
+        """
+        Return the game state after certain intents are held.
+
+        If the game state has not been seen then None is returned.
+        """
+
         return self.next_states.get(intents)
 
     def common_ancestor(self, other: Node) -> Node | None:
+        """
+        Return the common ancestor of this and another game state.
+
+        If there is no common ancestor, for example if the game states are from
+        different levels, then None is returned.
+        """
+
         left = self
         right = other
 
@@ -40,6 +55,17 @@ class Node:
 
             left = left.parent
             right = right.parent
+
+    def inputs(self) -> list[Intents]:
+        """Return the inputs that led to this state."""
+
+        node = self
+        inputs = deque[Intents]()
+        while node.parent is not None:
+            assert node.intents is not None
+            inputs.appendleft(node.intents)
+            node = node.parent
+        return list(inputs)
 
 
 class GameStates(Broadcaster):
@@ -73,6 +99,7 @@ class GameStates(Broadcaster):
         new_node = Node(
             parent=None,
             frame=0,
+            intents=None,
             state=event.state,
             next_states={},
         )
@@ -90,6 +117,7 @@ class GameStates(Broadcaster):
                 node = Node(
                     parent=prev_node,
                     frame=prev_node.frame + 1,
+                    intents=event.intents,
                     state=event.state,
                     next_states={},
                 )
