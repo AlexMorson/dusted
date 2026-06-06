@@ -14,7 +14,7 @@ from dusted.config import config
 from dusted.models.cursor import Cursor
 from dusted.models.game_states import GameStates
 from dusted.models.inputs import Inputs, Intents
-from dusted.models.inputs_grid import InputsGrid
+from dusted.models.inputs_grid import GRID_INTENTS, InputsGrid
 from dusted.models.level import Level
 from dusted.models.replay_diagnostics import ReplayDiagnostics
 from dusted.models.undo_stack import UndoStack
@@ -66,6 +66,7 @@ class App(tk.Tk):
         self._diagnostics.subscribe(self.on_diagnostics_change)
         self._undo_stack.subscribe(self.on_undo_stack_change)
         self._show_level.subscribe(self.on_show_level_change)
+        self._game_states.subscribe(self.on_game_states_change)
 
         self.write_config_timer = None
 
@@ -149,6 +150,11 @@ class App(tk.Tk):
         self.edit_menu.add_command(
             label="Replay metadata...",
             command=self.edit_replay_metadata,
+        )
+        self.edit_menu.add_command(
+            label="Import inputs from Dustforce",
+            command=self.import_inputs_from_dustforce,
+            state=tk.DISABLED,
         )
 
         view_menu = tk.Menu(menu_bar, tearoff=0)
@@ -441,6 +447,29 @@ The exported nexus script will be legal, but may not play back as expected.""",
         metadata = ReplayMetadata(self._character.get(), self._level.get())
         ReplayMetadataDialog(self, callback, defaults=metadata)
 
+    def import_inputs_from_dustforce(self) -> None:
+        """Import inputs from the game."""
+
+        node = self._game_states.current
+        if node is None:
+            return
+
+        game_inputs = node.inputs()
+
+        # Find the first place that the imported game inputs diverge from the
+        # current inputs.
+        for frame, (left, right) in enumerate(zip(game_inputs, self._inputs)):
+            if left != right:
+                break
+        else:
+            # The inputs are identical.
+            return
+
+        # Paste in the the modified inputs from that frame onwards.
+        with self._undo_stack.execute("Import inputs"):
+            self._inputs[frame : len(game_inputs)] = game_inputs[frame:]
+            self._cursor.select((len(GRID_INTENTS) - 1, len(game_inputs) - 1, 0, frame))
+
     def open_file(self):
         filepath = tkinter.filedialog.askopenfilename(
             defaultextension=".dfreplay",
@@ -543,3 +572,18 @@ The exported nexus script will be legal, but may not play back as expected.""",
         if config.show_level != show:
             config.show_level = show
             self.write_config_soon()
+
+    def on_game_states_change(self) -> None:
+        """Called when the game states change."""
+
+        # Enable/disable the import inputs button.
+        node = self._game_states.current
+        if node is None:
+            enable_import_inputs = False
+        else:
+            game_inputs = node.inputs()
+            enable_import_inputs = self._inputs[: len(game_inputs)] != game_inputs
+
+        import_inputs_state = tk.NORMAL if enable_import_inputs else tk.DISABLED
+        if self.edit_menu.entrycget(8, "state") != import_inputs_state:
+            self.edit_menu.entryconfig(8, state=import_inputs_state)
