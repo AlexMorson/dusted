@@ -156,15 +156,19 @@ class ReplayDiagnostics(Broadcaster):
                     # This is a non double tapped dash without a dash press.
                     self._errors.add((3, frame))
 
-                if fall != 0 and (not dash_pressed or y != 1):
-                    # This is a non double tapped fall without a dash press or
-                    # down intent.
-                    self._errors.add((4, frame))
-
                 if dash != 0 and fall == 0 and y == 1:
                     # This is a non double tapped dash with down held, which
                     # should result in a fall input, but hasn't.
                     self._errors.add((4, frame))
+
+            if (
+                double_tap is not Direction.DOWN
+                and fall != 0
+                and (not dash_pressed or y != 1)
+            ):
+                # This is a non double tapped fall without a dash press or down
+                # intent.
+                self._errors.add((4, frame))
 
             # Pressing any other key interrupts a double tap.
             if (

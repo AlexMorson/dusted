@@ -358,6 +358,23 @@ class TestReplayDiagnostics(TestCase):
         self.assertEqual(self.diagnostics.warnings, set())
         self.assertEqual(self.diagnostics.errors, set())
 
+    def test_double_tap_dash_fall_no_down(self):
+        """Test that a double tap dash and fall without down held is invalid."""
+
+        self.inputs.set(
+            """\
+212
+111
+000
+001
+001
+000
+000
+000""".splitlines()
+        )
+        self.assertEqual(self.diagnostics.warnings, set())
+        self.assertEqual(self.diagnostics.errors, {(4, 2)})
+
     def test_valid_attacks(self):
         """Test that valid attack intents do not error."""
 
