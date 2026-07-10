@@ -433,12 +433,12 @@ class Grid(tk.Canvas):
                         else:
                             fg = "white"
                         bg = "#24b"
-                    elif (row, true_col) in self._diagnostics.warnings:
-                        fg = "black"
-                        bg = "#e82"
                     elif (row, true_col) in self._diagnostics.errors:
                         fg = "black"
                         bg = "#d22"
+                    elif (row, true_col) in self._diagnostics.warnings:
+                        fg = "black"
+                        bg = "#e82"
                     elif true_col < 55:
                         # Inputs before the player has control
                         bg = "#dfd"
