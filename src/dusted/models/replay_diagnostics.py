@@ -151,12 +151,12 @@ class ReplayDiagnostics(Broadcaster):
             heavy_pressed = prev_heavy == 0 and heavy != 0
             taunt_pressed = prev_taunt == 0 and taunt != 0
 
-            if double_tap is None:
-                if dash != 0 and not dash_pressed:
+            if double_tap not in (Direction.LEFT, Direction.RIGHT) and dash != 0:
+                if not dash_pressed:
                     # This is a non double tapped dash without a dash press.
                     self._errors.add((3, frame))
 
-                if dash != 0 and fall == 0 and y == 1:
+                if fall == 0 and y == 1:
                     # This is a non double tapped dash with down held, which
                     # should result in a fall input, but hasn't.
                     self._errors.add((4, frame))
