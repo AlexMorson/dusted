@@ -343,6 +343,22 @@ class TestReplayDiagnostics(TestCase):
         self.assertEqual(self.diagnostics.warnings, set())
         self.assertEqual(self.diagnostics.errors, {(4, 0)})
 
+        # A double tapped fall still requires us to press the dash key to get a
+        # dash intent.
+        self.inputs.set(
+            """\
+111
+212
+000
+001
+000
+000
+000
+000""".splitlines()
+        )
+        self.assertEqual(self.diagnostics.warnings, {(4, 2)})
+        self.assertEqual(self.diagnostics.errors, {(4, 2)})
+
         # But a double tapped dash with down held is fine.
         self.inputs.set(
             """\
