@@ -46,6 +46,21 @@ class TestReplayDiagnostics(TestCase):
         self.assertEqual(self.diagnostics.warnings, set())
         self.assertEqual(self.diagnostics.errors, {(3, 3)})
 
+        # Continuing to hold down should not create another error.
+        self.inputs.set(
+            """\
+1111
+2222
+0000
+0001
+0010
+0000
+0000
+0000""".splitlines()
+        )
+        self.assertEqual(self.diagnostics.warnings, set())
+        self.assertEqual(self.diagnostics.errors, {(3, 3)})
+
         # Down double tap interrupted by an up tap.
         self.inputs.set(
             """\

@@ -156,7 +156,7 @@ class ReplayDiagnostics(Broadcaster):
                     # This is a non double tapped dash without a dash press.
                     self._errors.add((3, frame))
 
-                if fall == 0 and y == 1:
+                elif fall == 0 and y == 1:
                     # This is a non double tapped dash with down held, which
                     # should result in a fall input, but hasn't.
                     self._errors.add((4, frame))
